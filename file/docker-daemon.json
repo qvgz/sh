@@ -1,0 +1,26 @@
+{
+    "exec-opts": [
+        "native.cgroupdriver=systemd"
+    ],
+    "features": {
+        "buildkit": true
+    },
+    "live-restore": true,
+    "icc": false,
+    "log-driver": "json-file",
+    "log-opts": {
+        "cache-disabled": "false",
+        "cache-max-file": "5",
+        "cache-max-size": "50m",
+        "cache-compress": "true",
+        "env": "os,customer",
+        "labels": "somelabel",
+        "max-file": "5",
+        "max-size": "50m"
+    },
+    "storage-driver": "overlay2",
+    "dns": [
+        "8.8.8.8",
+        "1.1.1.1"
+    ]
+}

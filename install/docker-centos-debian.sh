@@ -28,12 +28,12 @@ function debian_install(){
 # centos 安装
 # https://docs.docker.com/engine/install/centos/
 function centos_install(){
-  (sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || exit 0)
+  (
+    sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || exit 0
+  )
 
   sudo yum install -y yum-utils
-
   sudo yum-config-manager --add-repo https://${mirrors}/linux/centos/docker-ce.repo
-
   sudo yum makecache fast && sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 

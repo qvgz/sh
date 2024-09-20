@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# centos debian 安装 docker
+# 安装 docker
 # 国内 腾讯源 七牛 Docker Hub 镜像
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker-centos-debian.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/docker-centos-debian.sh)"
+# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"
+# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/docker.sh)"
 
 set -e
 
@@ -27,30 +27,37 @@ function debian_install(){
 
 # centos 安装
 # https://docs.docker.com/engine/install/centos/
-function centos_install(){
+function rhel_install(){
   (
     sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || exit 0
   )
 
   sudo yum install -y yum-utils
-  sudo yum-config-manager --add-repo https://${mirrors}/linux/centos/docker-ce.repo
-  sudo yum makecache fast && sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  sudo yum-config-manager --add-repo https://${mirrors}/linux/$1/docker-ce.repo
+  (
+    sudo yum makecache fast || sudo dnf makecache
+  )
+  sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
+## 脚本开始 ##
 mirrors="download.docker.com"
-docker_daemon="https://raw.githubusercontent.com/qvgz/sh/master/file/docker-daemon.json"
+docker_daemon="https://proxy.qvgz.org/sh/file/docker-daemon-cn.json"
 if ! ping -c 1 google.com &> /dev/null ;then
   mirrors="mirrors.cloud.tencent.com/docker-ce"
-  docker_daemon="https://proxy.qvgz.org/sh/file/docker-daemon-cn.json"
 fi
 
 # 版本选择
-case $(grep -w ID /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g') in
+distro=$(grep -w ID= /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
+case  $distro in
   debian)
     debian_install
     ;;
   centos)
-    centos_install
+    rhel_install $distro
+    ;;
+  almalinux)
+    rhel_install "rhel"
     ;;
   *)
     echo "退出！系统不支持"

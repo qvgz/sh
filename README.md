@@ -8,8 +8,8 @@
 | :- | :- |
 | [centos-7-kernel-lts.sh](https://github.com/qvgz/sh/blob/master/install/centos-7-kernel-lts.sh) | [ centos 7 安装长期支持内核](https://proxy.qvgz.org/sh/install/centos-7-kernel-lts.sh) |
 | [debian-cloud-kernel.sh](https://github.com/qvgz/sh/blob/master/install/debian-cloud-kernel.sh) | [ debian 安装 cloud 内核](https://proxy.qvgz.org/sh/install/debian-cloud-kernel.sh) |
-| [docker-centos-debian.sh](https://github.com/qvgz/sh/blob/master/install/docker-centos-debian.sh) | [ centos debian 安装 docker](https://proxy.qvgz.org/sh/install/docker-centos-debian.sh) |
 | [docker-compose.sh](https://github.com/qvgz/sh/blob/master/install/docker-compose.sh) | [ linux x86_64 安装 docker-compose](https://proxy.qvgz.org/sh/install/docker-compose.sh) |
+| [docker.sh](https://github.com/qvgz/sh/blob/master/install/docker.sh) | [ 安装 docker](https://proxy.qvgz.org/sh/install/docker.sh) |
 | [golang.sh](https://github.com/qvgz/sh/blob/master/install/golang.sh) | [ golang 安装最新版本](https://proxy.qvgz.org/sh/install/golang.sh) |
 | [watchexec.sh](https://github.com/qvgz/sh/blob/master/install/watchexec.sh) | [ linux 安装 watchexec gun 版本](https://proxy.qvgz.org/sh/install/watchexec.sh) |
 | [zoxide.sh](https://github.com/qvgz/sh/blob/master/install/zoxide.sh) | [ linux 安装 zoxide](https://proxy.qvgz.org/sh/install/zoxide.sh) | 

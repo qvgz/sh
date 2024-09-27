@@ -27,7 +27,7 @@ function debian_install(){
 
 # centos 安装
 # https://docs.docker.com/engine/install/centos/
-function rhel_install(){
+function centos_install(){
   (
     sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || exit 0
   )
@@ -53,11 +53,8 @@ case  $distro in
   debian)
     debian_install
     ;;
-  centos)
-    rhel_install $distro
-    ;;
-  almalinux)
-    rhel_install "rhel"
+  "centos" | "almalinux")
+    centos_install "centos"
     ;;
   *)
     echo "退出！系统不支持"

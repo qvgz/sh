@@ -7,21 +7,23 @@
 
 set -e
 
-all_p=$*
-cmd="${all_p%% *}"
-apps="${all_p#* }"
+all=$*
+cmd="${all%% *}"
+apps="${all#* }"
 
 if [[ ${BREW_LIST_PATH} == "" ]];then
     BREW_LIST_PATH="$(dirname ${BASH_SOURCE[0]})/brew-list"
 fi
 
+ args=""
 case $cmd in
     install)
         for app in $apps;do
-            # 字符串不为 -- 开头，且安装成功
-            # "${string:0:2}" == "--"
-            if [[ ! $app =~ ^--.* ]] && eval brew install $app;then
-                echo "$app" >> $BREW_LIST_PATH
+            # -- 开头为参数
+            if [[ $app =~ ^--.* ]];then
+                args+="$app "
+            else
+                eval /opt/homebrew/bin/brew install ${args}${app} && echo "$app" >> $BREW_LIST_PATH
             fi
         done
         tmpfile=$(mktemp)
@@ -30,8 +32,11 @@ case $cmd in
     ;;
     uninstall)
          for app in $apps;do
-            # 字符串不为 -- 开头，且卸载成功
-            if [[ ! $app =~ ^--.* ]] && eval brew uninstall $app;then
+            # -- 开头为参数
+            if [[ $app =~ ^--.* ]] ;then
+                  args+="$app "
+            else
+                 eval /opt/homebrew/bin/brew uninstall ${args}${app}
                  /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "/$app/d" $BREW_LIST_PATH
             fi
         done

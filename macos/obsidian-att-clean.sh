@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Obsidian 清理 0 链接附件
+# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/macos/obsidian-att-clean.sh)"
+# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/macos/obsidian-att-clean.sh)"
+
+# 环境变量中 仓库路径 与 0 链接附件暂存路径 不为空
+[[ -z $OBSIDIAN_VAULT_PATH || -z $OBSIDIAN_TRASH_PATH ]] && exit 1
+# 附件默认存放路径为指定的附件文件夹 "归档/附件"
+md_path_str=$(find "$OBSIDIAN_VAULT_PATH" -not -path '*/.trash/*' -not -path '*/归档/附件/*' -type f -name '*.md' | awk '{printf("%s%c",$0,10)}')
+
+# md 中含有附件名提前退出
+function md_check_att (){
+    att_path=$1  
+    att_name=$(echo $att_path | awk -F/ '{printf("%s",$NF)}')
+    IFS=$'\n'
+    for md in $md_path_str;do
+        if [[ $(grep -c "${att_name}" "${md}") != 0 ]];then
+            return 0
+        fi
+    done
+    mv "$att_path" "${OBSIDIAN_TRASH_PATH}/$(date +%Y%m%d%H%M%S)-${att_name}"
+}
+
+export md_path_str
+export OBSIDIAN_TRASH_PATH
+export -f md_check_att
+
+find "$OBSIDIAN_VAULT_PATH" -path '*/归档/附件/*' -type f \
+| parallel --no-notice 'md_check_att {}'

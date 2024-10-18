@@ -49,6 +49,7 @@
 | [dir-git-pull.sh](https://github.com/qvgz/sh/blob/master/macos/dir-git-pull.sh) | [ 含有 .git 文件夹执行 git pull](https://proxy.qvgz.org/sh/macos/dir-git-pull.sh) |
 | [git-dropbox-ignored-mac.sh](https://github.com/qvgz/sh/blob/master/macos/git-dropbox-ignored-mac.sh) | [ Dropbox 忽略 git clone 文件夹](https://proxy.qvgz.org/sh/macos/git-dropbox-ignored-mac.sh) |
 | [ln-dir-desktop.sh](https://github.com/qvgz/sh/blob/master/macos/ln-dir-desktop.sh) | [ 桌面创建当前目录快捷方式](https://proxy.qvgz.org/sh/macos/ln-dir-desktop.sh) |
+| [obsidian-att-clean.sh](https://github.com/qvgz/sh/blob/master/macos/obsidian-att-clean.sh) | [ Obsidian 清理 0 链接附件](https://proxy.qvgz.org/sh/macos/obsidian-att-clean.sh) |
 | [wexec.sh](https://github.com/qvgz/sh/blob/master/macos/wexec.sh) | [ 文件目录变更执行脚本](https://proxy.qvgz.org/sh/macos/wexec.sh) | 
 
 ## other

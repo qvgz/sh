@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# 进程守护
-# 守护进程的执行文件（绝对路径）与参数写入脚本文件同目录下 process-list 文本
+# 进程守护列表
+# 守护进程的执行文件（绝对路径）与参数写入脚本文件同目录下 daemon-list 文本
 # 换行分隔多个进程
 # $1 为检查间隔时间，单位秒，缺省为 3。
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/other/process-daemon.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/other/process-daemon.sh)"
+# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/other/daemon-list.sh)"
+# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/other/daemon-list.sh)"
 
 set -e
 
@@ -23,9 +23,9 @@ while true;do
                 args=$(echo $process | awk '{ for (i = 2; i <= NF; i++) print $i }')
                 if [[ ! -x $process_name ]]; then chmod u+x $process_name; fi
                 eval nohup ./$process_name $args &
-                echo "$(date +"%Y-%m-%d %H:%M") 启动 ${process}" >> ${path}/process-daemon.log
+                echo "$(date +"%Y-%m-%d %H:%M") 启动 ${process}" >> ${path}/daemon-list.log
             )
         fi
-    done <${path}/process-list
+    done <${path}/daemon-list
     sleep ${sleep_time:=3}
 done

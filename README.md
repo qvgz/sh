@@ -20,6 +20,7 @@
 | :- | :- |
 | [centos-ip-link-num.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-link-num.sh) | [ centos ip 连接数 ！仅测试 centos 7](https://proxy.qvgz.org/sh/ops/centos-ip-link-num.sh) |
 | [centos-ip-zero-link-down.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-zero-link-down.sh) | [ centos ip 0 连接数，关闭网卡、注释 ifcfg-eth ！仅测试 centos 5、7](https://proxy.qvgz.org/sh/ops/centos-ip-zero-link-down.sh) |
+| [daemon.sh](https://github.com/qvgz/sh/blob/master/ops/daemon.sh) | [ 进程守护](https://proxy.qvgz.org/sh/ops/daemon.sh) |
 | [debian-mirrors.sh](https://github.com/qvgz/sh/blob/master/ops/debian-mirrors.sh) | [ debian apt 源](https://proxy.qvgz.org/sh/ops/debian-mirrors.sh) |
 | [debian-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/debian-rc-local.sh) | [ debian 使用 /etc/rc.local](https://proxy.qvgz.org/sh/ops/debian-rc-local.sh) |
 | [delete-log.sh](https://github.com/qvgz/sh/blob/master/ops/delete-log.sh) | [ 删除日志](https://proxy.qvgz.org/sh/ops/delete-log.sh) |
@@ -57,7 +58,7 @@
 | 文件名 | 介绍 |
 | :- | :- |
 | [cloudflare-ddns.sh](https://github.com/qvgz/sh/blob/master/other/cloudflare-ddns.sh) | [ Cloudflare DDNS](https://proxy.qvgz.org/sh/other/cloudflare-ddns.sh) |
+| [daemon-list.sh](https://github.com/qvgz/sh/blob/master/other/daemon-list.sh) | [ 进程守护列表](https://proxy.qvgz.org/sh/other/daemon-list.sh) |
 | [inotifywait.sh](https://github.com/qvgz/sh/blob/master/other/inotifywait.sh) | [ 文件目录变更执行脚本](https://proxy.qvgz.org/sh/other/inotifywait.sh) |
 | [log.sh](https://github.com/qvgz/sh/blob/master/other/log.sh) | [ 日志相关](https://proxy.qvgz.org/sh/other/log.sh) |
 | [path-add-path.sh](https://github.com/qvgz/sh/blob/master/other/path-add-path.sh) | [ 添加 PATH](https://proxy.qvgz.org/sh/other/path-add-path.sh) |
-| [process-daemon.sh](https://github.com/qvgz/sh/blob/master/other/process-daemon.sh) | [ 进程守护](https://proxy.qvgz.org/sh/other/process-daemon.sh) |

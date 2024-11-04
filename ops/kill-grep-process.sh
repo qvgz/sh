@@ -2,7 +2,7 @@
 # 筛选杀死进程
 # $1 指定字符串进程
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/kill-grep-process.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/kill-grep-process.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/kill-grep-process.sh)"
 
 # grep_str=$1
 

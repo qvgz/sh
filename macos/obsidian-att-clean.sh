@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Obsidian 清理 0 链接附件
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/macos/obsidian-att-clean.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/macos/obsidian-att-clean.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/macos/obsidian-att-clean.sh)"
 
 # 环境变量中 仓库路径 与 0 链接附件暂存路径 不为空
 [[ -z $OBSIDIAN_VAULT_PATH || -z $OBSIDIAN_TRASH_PATH ]] && exit 1

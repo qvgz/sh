@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 进程守护
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/daemon.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/daemon.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/daemon.sh)"
 
 # 配置项
 LOG_FILE="/var/log/daemon.log"

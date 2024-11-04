@@ -1,7 +1,7 @@
 #!/bin/bash
 # pip 包更新
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/pip-package-update.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/pip-package-update.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/pip-package-update.sh)"
 
 set -e
 

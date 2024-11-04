@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 生成 README.md
 
-proxy="https://proxy.qvgz.org/sh/"
+proxy="https://qvgz.org/sh/"
 github="https://github.com/qvgz/sh/blob/master/"
 
 # 地址、注释

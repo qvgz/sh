@@ -3,7 +3,7 @@
 # $1 日志路径
 # $2 日志保留天数
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/delete-log.sh.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/delete-log.sh.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/delete-log.sh.sh)"
 
 set -e
 

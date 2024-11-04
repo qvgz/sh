@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # debian apt 源
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/debian-mirrors.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/debian-mirrors.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/debian-mirrors.sh)"
 
 set -e
 

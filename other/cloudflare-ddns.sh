@@ -8,7 +8,7 @@
 # $4 ttl 时间，单位分钟，同时为脚本定期执行时间，缺省为 3。
 # 日志默认位置，脚本文件同目录下 cloudflare-ddns.log 文件
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/other/cloudflare-ddns.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/other/cloudflare-ddns.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/other/cloudflare-ddns.sh)"
 
 set -e
 

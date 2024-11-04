@@ -3,7 +3,7 @@
 # 环境变量 $BREW_LIST_PATH 指定 brew-list 路径，缺省在 brew.sh 同目录中
 # 注意使用 gnu-sed
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/macos/brew.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/macos/brew.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/macos/brew.sh)"
 
 set -e
 

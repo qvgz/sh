@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 出口 IP
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/sys/get-export-ip.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/sys/get-export-ip.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/sys/get-export-ip.sh)"
 
 function get_local_ip(){
     export_ip=""

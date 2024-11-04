@@ -4,7 +4,7 @@
 # 换行分隔多个进程
 # $1 为检查间隔时间，单位秒，缺省为 3。
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/other/daemon-list.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/other/daemon-list.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/other/daemon-list.sh)"
 
 set -e
 

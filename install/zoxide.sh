@@ -2,7 +2,7 @@
 # linux 安装 zoxide
 # https://github.com/ajeetdsouza/zoxide
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/zoxide.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/zoxide.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/install/zoxide.sh)"
 
 set -e
 

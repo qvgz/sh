@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # linux x86_64 安装 docker-compose
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker-compose.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/docker-compose.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/install/docker-compose.sh)"
 
 set -e
 

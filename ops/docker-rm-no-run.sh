@@ -2,7 +2,7 @@
 # 删除未运行容器与卷
 # $1 为排除容器相关字符
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/docker-rm-no-run.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/docker-rm-no-run.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/docker-rm-no-run.sh)"
 
 # docker_ps_all=$(docker ps -a | cut -d ' ' -f1 | sed 's/CONTAINER//') # 换行存储到字符串变成了空格
 # docker_ps_quiet=$(docker ps --quiet)

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # centos ip 0 连接数，关闭网卡、注释 ifcfg-eth ！仅测试 centos 5、7
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/centos-ip-zero-link-down.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/centos-ip-zero-link-down.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/centos-ip-zero-link-down.sh)"
 
 set -e
 

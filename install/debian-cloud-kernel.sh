@@ -2,7 +2,7 @@
 # debian 安装 cloud 内核
 # $1=backports 启用  backports
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/debian-cloud-kernel.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/debian-cloud-kernel.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/install/debian-cloud-kernel.sh)"
 
 set -e
 

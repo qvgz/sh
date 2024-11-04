@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 磁盘 UUID
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/sys/get-disk-uuid.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/sys/get-disk-uuid.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/sys/get-disk-uuid.sh)"
 
 # $1 磁盘名
 function get_disk_uuid(){

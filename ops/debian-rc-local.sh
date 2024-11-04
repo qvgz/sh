@@ -2,7 +2,7 @@
 # debian 使用 /etc/rc.local
 # 参考：https://u.sb/debian-rc-local/
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/debian-rc-local.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/debian-rc-local.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/debian-rc-local.sh)"
 
 set -e
 

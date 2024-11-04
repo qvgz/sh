@@ -2,7 +2,7 @@
 # 安装 docker
 # 国内 腾讯源 七牛 Docker Hub 镜像
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/install/docker.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/install/docker.sh)"
 
 set -e
 
@@ -42,7 +42,7 @@ function centos_install(){
 
 ## 脚本开始 ##
 mirrors="download.docker.com"
-docker_daemon="https://proxy.qvgz.org/sh/file/docker-daemon-cn.json"
+docker_daemon="https://qvgz.org/sh/file/docker-daemon-cn.json"
 if ! ping -c 1 google.com &> /dev/null ;then
   mirrors="mirrors.cloud.tencent.com/docker-ce"
 fi

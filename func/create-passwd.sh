@@ -2,7 +2,7 @@
 # 生成密码
 # $1 为指定位数，缺省为 10 位
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/func/create-passwd.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/func/create-passwd.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/func/create-passwd.sh)"
 
 function create_passwd(){
   local num=$1

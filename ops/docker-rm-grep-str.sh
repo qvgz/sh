@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 筛选删除容器
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/docker-rm-grep-str.sh)"
-# bash -c "$(curl -fsSL https://proxy.qvgz.org/sh/ops/docker-rm-grep-str.sh)"
+# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/docker-rm-grep-str.sh)"
 
 # $1 删选 str
 

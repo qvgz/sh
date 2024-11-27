@@ -48,7 +48,7 @@ if ! ping -c 1 google.com &> /dev/null ;then
 fi
 
 # 版本选择
-distro=$(grep -w ID= /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
+distro=$(grep '^ID=' /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
 case  $distro in
   debian)
     debian_install

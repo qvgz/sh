@@ -7,7 +7,8 @@ file_name=$2
 intro=$3
 
 if [[ $sort == "" ]] || [[ $file_name == "" ]];then
-    echo "必须参数 $1 类别 $2 文件名"
+    # shellcheck disable=SC2016
+    echo '必须参数 $1 类别 $2 文件名'
     exit 1
 fi
 

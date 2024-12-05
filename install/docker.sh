@@ -4,12 +4,14 @@
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/install/docker.sh)"
 
-set -e
+set -ex
 
-# debian 安装
+# debian
 # https://docs.docker.com/engine/install/debian/#uninstall-docker-engine
 function debian_install(){
-  (sudo apt remove docker.io docker-doc docker-compose podman-docker containerd runc || exit 0)
+  (
+    sudo apt remove docker.io docker-doc docker-compose podman-docker containerd runc || exit 0
+  )
 
   sudo apt update
   sudo apt install -y ca-certificates curl gnupg
@@ -18,14 +20,13 @@ function debian_install(){
 
   sudo mkdir -p /etc/apt/keyrings
   curl -fsSL https://${mirrors}/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${mirrors}/linux/debian \
-    ${sys_version} stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  docker_list="deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${mirrors}/linux/debian ${sys_version} stable"
+  sudo sh -c "echo $docker_list > /etc/apt/sources.list.d/docker.list"
   sudo apt update
   sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
-# centos 安装
+# centos
 # https://docs.docker.com/engine/install/centos/
 function centos_install(){
   (
@@ -40,21 +41,27 @@ function centos_install(){
   sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
+# arch
+# https://wiki.archlinux.org/title/Docker
+function arch_install(){
+  sudo pacman -S --noconfirm docker docker-compose
+}
+
 ## 脚本开始 ##
 mirrors="download.docker.com"
-docker_daemon="https://qvgz.org/sh/file/docker-daemon-cn.json"
-if ! ping -c 1 google.com &> /dev/null ;then
-  mirrors="mirrors.cloud.tencent.com/docker-ce"
-fi
+ping -c 1 google.com &> /dev/null || mirrors="mirrors.cloud.tencent.com/docker-ce"
 
 # 版本选择
 distro=$(grep '^ID=' /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
 case  $distro in
-  debian)
+  "debian")
     debian_install
     ;;
   "centos" | "almalinux")
     centos_install "centos"
+    ;;
+  "arch")
+    arch_install
     ;;
   *)
     echo "退出！系统不支持"
@@ -62,10 +69,10 @@ case  $distro in
     ;;
 esac
 
-
 # docker 配置
 sudo mkdir -p /etc/docker
-sudo curl -o /etc/docker/daemon.json $docker_daemon
+sudo curl -fsSL -o /etc/docker/daemon.json https://raw.githubusercontent.com/qvgz/sh/master/file/docker-daemon.json \
+|| sudo curl -fsSL -o /etc/docker/daemon.json https://qvgz.org/sh/file/docker-daemon.json 
 
 # 非root 用户加入 docker 用户组
 if [[ $(id -u) != "0" ]]; then

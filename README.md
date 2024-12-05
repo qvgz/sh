@@ -18,6 +18,7 @@
 
 | 文件名 | 介绍 |
 | :- | :- |
+| [archlinux-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/archlinux-rc-local.sh) | [ archlinux 使用 /etc/rc.local](https://qvgz.org/sh/ops/archlinux-rc-local.sh) |
 | [centos-ip-link-num.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-link-num.sh) | [ centos ip 连接数 ！仅测试 centos 7](https://qvgz.org/sh/ops/centos-ip-link-num.sh) |
 | [centos-ip-zero-link-down.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-zero-link-down.sh) | [ centos ip 0 连接数，关闭网卡、注释 ifcfg-eth ！仅测试 centos 5、7](https://qvgz.org/sh/ops/centos-ip-zero-link-down.sh) |
 | [daemon.sh](https://github.com/qvgz/sh/blob/master/ops/daemon.sh) | [ 进程守护](https://qvgz.org/sh/ops/daemon.sh) |

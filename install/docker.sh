@@ -1,6 +1,5 @@
 #!/bin/bash
 # 安装 docker
-# 国内 腾讯源 七牛 Docker Hub 镜像
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/install/docker.sh)"
 
@@ -47,6 +46,16 @@ function arch_install(){
   sudo pacman -S --noconfirm docker docker-compose
 }
 
+function set_registry_mirrors(){
+   # 腾讯云内网镜像源
+  ping -c 1 mirror.ccs.tencentyun.com &> /dev/null || return
+  (
+    sudo yum install -y jq || sudo apt install -y jq
+  )
+  jq '. + {"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}' /etc/docker/daemon.json > /tmp/docker-daemon.json \
+  && sudo mv /tmp/docker-daemon.json /etc/docker/daemon.json
+}
+
 ## 脚本开始 ##
 mirrors="download.docker.com"
 ping -c 1 google.com &> /dev/null || mirrors="mirrors.cloud.tencent.com/docker-ce"
@@ -72,7 +81,9 @@ esac
 # docker 配置
 sudo mkdir -p /etc/docker
 sudo curl -fsSL -o /etc/docker/daemon.json https://raw.githubusercontent.com/qvgz/sh/master/file/docker-daemon.json \
-|| sudo curl -fsSL -o /etc/docker/daemon.json https://qvgz.org/sh/file/docker-daemon.json 
+|| sudo curl -fsSL -o /etc/docker/daemon.json https://qvgz.org/sh/file/docker-daemon.json
+
+set_registry_mirrors
 
 # 非root 用户加入 docker 用户组
 if [[ $(id -u) != "0" ]]; then

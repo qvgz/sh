@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # debian 使用 /etc/rc.local
 # 参考：https://u.sb/debian-rc-local/
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/debian-rc-local.sh)"

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 提示需 root 执行
 
 function is_root() {

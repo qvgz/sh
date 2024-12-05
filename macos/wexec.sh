@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 文件目录变更执行脚本
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/macos/wexec.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/macos/wexec.sh)"

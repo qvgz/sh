@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # golang 安装最新版本
 # $1 指定 go 版本号，缺省最新（国内必须指定版本号）
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/golang.sh)"

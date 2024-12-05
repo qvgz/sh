@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 创建新脚本
 # 必须参数 $1 类别 $2 文件名
 
@@ -37,7 +37,7 @@ case $sort in
 esac
 
 cat << EOF > $new_file_path
-#!/usr/bin/env bash
+#!/bin/bash
 # $intro
 # bash -c "\$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/${sort}/${file_name}.sh)"
 # bash -c "\$(curl -fsSL https://qvgz.org/sh/${sort}/${file_name}.sh)"

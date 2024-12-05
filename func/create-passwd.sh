@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 生成密码
 # $1 为指定位数，缺省为 10 位
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/func/create-passwd.sh)"

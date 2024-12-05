@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # centos ip 连接数 ！仅测试 centos 7
 
 set -e

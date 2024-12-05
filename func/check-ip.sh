@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 检查 IP 格式
 
 function check_ip() {

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Dropbox 忽略 git clone 文件夹
 # $1 git clone 路径
 # https://help.dropbox.com/zh-cn/sync/ignored-files

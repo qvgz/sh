@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 生成 README.md
 
 proxy="https://qvgz.org/sh/"

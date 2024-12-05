@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 添加 PATH
 # $1 为指定 cmd 绝对路径
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Cloudflare DDNS
 # 3 个为必须参数：
 # $1 域名，例如：fxtaoo.com。

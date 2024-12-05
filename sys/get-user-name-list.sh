@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 用户列表
 
 function get_user_name_list(){

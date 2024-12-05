@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 系统版本
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/sys/get-sys-version.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/sys/get-sys-version.sh)"

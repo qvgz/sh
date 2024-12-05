@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 日志相关
 # 注意日志主要三个标志：OK 正确、NO 错误、ADD 追加配置
 

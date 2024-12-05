@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 磁盘 UUID
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/sys/get-disk-uuid.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/sys/get-disk-uuid.sh)"

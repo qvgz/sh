@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 进程守护
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/daemon.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/ops/daemon.sh)"

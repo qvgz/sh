@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 删除镜像，设置保留几个版本
 # $1 为保留版本数量（按 CREATED 时间由近到远依次），其余删除
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/docker-image-clean.sh)"

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # linux 安装 watchexec gun 版本
 # https://github.com/watchexec/watchexec/tree/main
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/watchexec.sh)"

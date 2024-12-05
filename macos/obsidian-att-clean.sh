@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # Obsidian 清理 0 链接附件
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/macos/obsidian-att-clean.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/macos/obsidian-att-clean.sh)"

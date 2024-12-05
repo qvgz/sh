@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 运行脚本所在目录绝对路径
 
 function get_run_sh_dir_path(){

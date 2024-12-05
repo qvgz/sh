@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # centos 7 安装长期支持内核
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/centos-7-kernel-lts.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/install/centos-7-kernel-lts.sh)"

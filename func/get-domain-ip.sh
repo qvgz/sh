@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 域名 IP
 
 function get_domain_ip(){

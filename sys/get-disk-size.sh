@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 磁盘大小
 # $1 为磁盘名
 

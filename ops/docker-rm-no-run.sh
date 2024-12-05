@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 删除未运行容器与卷
 # $1 为排除容器相关字符
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/docker-rm-no-run.sh)"

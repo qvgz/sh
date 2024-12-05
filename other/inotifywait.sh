@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 文件目录变更执行脚本
 # 需要安装 inotify-tools
 # $1 文件或目录 绝对路径

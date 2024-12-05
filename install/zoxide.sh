@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # linux 安装 zoxide
 # https://github.com/ajeetdsouza/zoxide
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/zoxide.sh)"

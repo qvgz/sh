@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 安装 docker
 # 国内 腾讯源 七牛 Docker Hub 镜像
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"

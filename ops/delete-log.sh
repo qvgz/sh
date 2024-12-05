@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # 删除日志
 # $1 日志路径
 # $2 日志保留天数

@@ -9,6 +9,7 @@ intro=$3
 if [[ $sort == "" ]] || [[ $file_name == "" ]];then
     # shellcheck disable=SC2016
     echo '必须参数 $1 类别 $2 文件名'
+    echo "例如：./new.sh ops archlinux-rc-local"
     exit 1
 fi
 

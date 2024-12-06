@@ -8,18 +8,15 @@ set -ex
 # debian
 # https://docs.docker.com/engine/install/debian/#uninstall-docker-engine
 function debian_install(){
-  (
-    sudo apt remove docker.io docker-doc docker-compose podman-docker containerd runc || exit 0
-  )
-
+  sudo apt remove docker.io docker-doc docker-compose podman-docker containerd runc || true
   sudo apt update
   sudo apt install -y ca-certificates curl gnupg
 
   sys_version=$(grep -w 'VERSION_CODENAME' /etc/os-release | awk -F '=' '{print $2}')
 
   sudo mkdir -p /etc/apt/keyrings
-  curl -fsSL https://${mirrors}/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  docker_list="deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${mirrors}/linux/debian ${sys_version} stable"
+  curl -fsSL https://${MORROR}/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  docker_list="deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${MORROR}/linux/debian ${sys_version} stable"
   sudo sh -c "echo $docker_list > /etc/apt/sources.list.d/docker.list"
   sudo apt update
   sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
@@ -28,15 +25,13 @@ function debian_install(){
 # centos
 # https://docs.docker.com/engine/install/centos/
 function centos_install(){
-  (
-    sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || exit 0
-  )
+  
+  sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || true
 
   sudo yum install -y yum-utils
-  sudo yum-config-manager --add-repo https://${mirrors}/linux/$1/docker-ce.repo
-  (
-    sudo yum makecache fast || sudo dnf makecache
-  )
+  sudo yum-config-manager --add-repo https://${MORROR}/linux/$1/docker-ce.repo
+
+  sudo yum makecache fast || sudo dnf makecache || true
   sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 }
 
@@ -49,27 +44,29 @@ function arch_install(){
 function set_registry_mirrors(){
    # 腾讯云内网镜像源
   ping -c 1 mirror.ccs.tencentyun.com &> /dev/null || return
-  (
-    sudo yum install -y jq || sudo apt install -y jq
-  )
+  type jq || eval "$INSTALL jq"
   jq '. + {"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}' /etc/docker/daemon.json > /tmp/docker-daemon.json \
   && sudo mv /tmp/docker-daemon.json /etc/docker/daemon.json
 }
 
 ## 脚本开始 ##
-mirrors="download.docker.com"
-ping -c 1 google.com &> /dev/null || mirrors="mirrors.cloud.tencent.com/docker-ce"
+MORROR="download.docker.com"
+INSTALL=""
+ping -c 1 google.com &> /dev/null || MORROR="mirrors.cloud.tencent.com/docker-ce"
 
 # 版本选择
 distro=$(grep '^ID=' /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
 case  $distro in
   "debian")
+    INSTALL="sudo apt install -y jq"
     debian_install
     ;;
   "centos" | "almalinux")
+    INSTALL="sudo yum install -y"
     centos_install "centos"
     ;;
   "arch")
+    INSTALL="sudo pacman -S --noconfirm"
     arch_install
     ;;
   *)

@@ -43,10 +43,11 @@ function arch_install(){
 
 function set_registry_mirrors(){
    # 腾讯云内网镜像源
-  ping -c 1 mirror.ccs.tencentyun.com &> /dev/null || return
-  type jq || eval "$INSTALL jq"
-  jq '. + {"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}' /etc/docker/daemon.json > /tmp/docker-daemon.json \
-  && sudo mv /tmp/docker-daemon.json /etc/docker/daemon.json
+  if ping -c 1 mirror.ccs.tencentyun.com &> /dev/null; then
+    type jq || eval "$INSTALL jq"
+    jq '. + {"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}' /etc/docker/daemon.json > /tmp/docker-daemon.json \
+    && sudo mv /tmp/docker-daemon.json /etc/docker/daemon.json
+  fi
 }
 
 ## 脚本开始 ##

@@ -30,6 +30,7 @@ function centos_install(){
 
   sudo yum install -y yum-utils
   sudo yum-config-manager --add-repo https://${MORROR}/linux/$1/docker-ce.repo
+  sudo sed -i "s|download.docker.com|${MORROR}|g" /etc/yum.repos.d/docker-ce.repo 
 
   sudo yum makecache fast || sudo dnf makecache || true
   sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin

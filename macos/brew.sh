@@ -15,7 +15,7 @@ if [[ ${BREW_LIST_PATH} == "" ]];then
     BREW_LIST_PATH="$(dirname ${BASH_SOURCE[0]})/brew-list"
 fi
 
- args=""
+args=""
 case $cmd in
     install)
         for app in $apps;do
@@ -32,14 +32,18 @@ case $cmd in
     ;;
     uninstall)
          for app in $apps;do
-            # -- 开头为参数
-            if [[ $app =~ ^--.* ]] ;then
+            # -- 开头为参数 
+            if
+             [[ $app =~ ^--.* ]] ;then
                   args+="$app "
             else
                  eval /opt/homebrew/bin/brew uninstall ${args}${app}
                  /opt/homebrew/opt/gnu-sed/libexec/gnubin/sed -i "/$app/d" $BREW_LIST_PATH
             fi
         done
+    ;;
+    upgrade)
+        /opt/homebrew/bin/brew outdated --greedy | grep -v -F -f  ${BREW_PIN_LIST_PATH} | xargs /opt/homebrew/bin/brew upgrade
     ;;
     *)
         # 执行失败，脚本停止，执行成功脚本退出

@@ -1,4 +1,4 @@
-# cmd
+-e # cmd
 
 一些 shell 脚本 
 
@@ -21,6 +21,7 @@
 | [archlinux-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/archlinux-rc-local.sh) | [ archlinux 使用 /etc/rc.local](https://qvgz.org/sh/ops/archlinux-rc-local.sh) |
 | [centos-ip-link-num.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-link-num.sh) | [ centos ip 连接数 ！仅测试 centos 7](https://qvgz.org/sh/ops/centos-ip-link-num.sh) |
 | [centos-ip-zero-link-down.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-zero-link-down.sh) | [ centos ip 0 连接数，关闭网卡、注释 ifcfg-eth ！仅测试 centos 5、7](https://qvgz.org/sh/ops/centos-ip-zero-link-down.sh) |
+| [daemon-list.sh](https://github.com/qvgz/sh/blob/master/ops/daemon-list.sh) | [ 进程守护列表](https://qvgz.org/sh/ops/daemon-list.sh) |
 | [daemon.sh](https://github.com/qvgz/sh/blob/master/ops/daemon.sh) | [ 进程守护](https://qvgz.org/sh/ops/daemon.sh) |
 | [debian-mirrors.sh](https://github.com/qvgz/sh/blob/master/ops/debian-mirrors.sh) | [ debian apt 源](https://qvgz.org/sh/ops/debian-mirrors.sh) |
 | [debian-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/debian-rc-local.sh) | [ debian 使用 /etc/rc.local](https://qvgz.org/sh/ops/debian-rc-local.sh) |
@@ -29,6 +30,7 @@
 | [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [ 删除镜像，设置保留几个版本](https://qvgz.org/sh/ops/docker-image-clean.sh) |
 | [docker-rm-grep-str.sh](https://github.com/qvgz/sh/blob/master/ops/docker-rm-grep-str.sh) | [ 筛选删除容器](https://qvgz.org/sh/ops/docker-rm-grep-str.sh) |
 | [docker-rm-no-run.sh](https://github.com/qvgz/sh/blob/master/ops/docker-rm-no-run.sh) | [ 删除未运行容器与卷](https://qvgz.org/sh/ops/docker-rm-no-run.sh) |
+| [inotifywait.sh](https://github.com/qvgz/sh/blob/master/ops/inotifywait.sh) | [ 文件目录变更执行脚本](https://qvgz.org/sh/ops/inotifywait.sh) |
 | [kill-grep-process.sh](https://github.com/qvgz/sh/blob/master/ops/kill-grep-process.sh) | [ 筛选杀死进程](https://qvgz.org/sh/ops/kill-grep-process.sh) |
 | [pip-package-update.sh](https://github.com/qvgz/sh/blob/master/ops/pip-package-update.sh) | [ pip 包更新](https://qvgz.org/sh/ops/pip-package-update.sh) |
 | [pip-update.sh](https://github.com/qvgz/sh/blob/master/ops/pip-update.sh) | [ pip 更新](https://qvgz.org/sh/ops/pip-update.sh) | 
@@ -59,7 +61,5 @@
 | 文件名 | 介绍 |
 | :- | :- |
 | [cloudflare-ddns.sh](https://github.com/qvgz/sh/blob/master/other/cloudflare-ddns.sh) | [ Cloudflare DDNS](https://qvgz.org/sh/other/cloudflare-ddns.sh) |
-| [daemon-list.sh](https://github.com/qvgz/sh/blob/master/other/daemon-list.sh) | [ 进程守护列表](https://qvgz.org/sh/other/daemon-list.sh) |
-| [inotifywait.sh](https://github.com/qvgz/sh/blob/master/other/inotifywait.sh) | [ 文件目录变更执行脚本](https://qvgz.org/sh/other/inotifywait.sh) |
 | [log.sh](https://github.com/qvgz/sh/blob/master/other/log.sh) | [ 日志相关](https://qvgz.org/sh/other/log.sh) |
 | [path-add-path.sh](https://github.com/qvgz/sh/blob/master/other/path-add-path.sh) | [ 添加 PATH](https://qvgz.org/sh/other/path-add-path.sh) |

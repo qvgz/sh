@@ -63,3 +63,4 @@
 | [cloudflare-ddns.sh](https://github.com/qvgz/sh/blob/master/other/cloudflare-ddns.sh) | [ Cloudflare DDNS](https://qvgz.org/sh/other/cloudflare-ddns.sh) |
 | [log.sh](https://github.com/qvgz/sh/blob/master/other/log.sh) | [ 日志相关](https://qvgz.org/sh/other/log.sh) |
 | [path-add-path.sh](https://github.com/qvgz/sh/blob/master/other/path-add-path.sh) | [ 添加 PATH](https://qvgz.org/sh/other/path-add-path.sh) |
+| [wechat2.sh](https://github.com/qvgz/sh/blob/master/other/wechat2.sh) | [ macOS 微信双开](https://qvgz.org/sh/other/wechat2.sh) |

@@ -17,14 +17,30 @@ log_limit=$((512*1024*1024))
 case "$sleep_time" in ''|*[!0-9]*) sleep_time=3;; esac
 log="${path}/daemon-list.log"
 
+# 日志重置
+function Log_Reset(){
+    if test -f $1; then
+        size=$(stat -c %s $1 2>/dev/null)
+        test "$size" -gt "$log_limit"
+        return $?
+    else
+        return 1
+    fi
+}
+
+
 while true; do
+    if Log_Reset "$log"; then
+        \mv -f "$log" "$log.bak" \
+        && echo "$(date +'%Y-%m-%d %H:%M') 清理 $log" >>"$log"
+    fi
     # 兼容“文件末行无换行”
     while IFS= read -r process || test -n "$process"; do
         # 空行或注释跳过
         if test -z "$process" || test "${process:0:1}" = "#"; then
             continue
         fi
-        if echo "$process" | grep -Eq '[<>.[\]()*+?|^$\\]'; then
+        if echo "$process" | grep -Eq '[<>[\]()*+?|^$\\]'; then
             echo "$process 跳过！不支持配置重定向或特殊正则符号" >>"$log"
             continue
         fi
@@ -33,12 +49,10 @@ while true; do
         # 打开目录
         cd -- "$(dirname -- "$process_path")" >>"$log" 2>&1 || continue
         process_name="$(basename -- "$process_path")"
-        # 日志文件存在且超过阈值
-        if test -f "nohup.out"; then
-            size=$(stat -c %s nohup.out 2>/dev/null)
-            if test "$size" -gt "$log_limit"; then
-                \cp -f nohup.out nohup.out.bak && :> nohup.out && echo "$(date +'%Y-%m-%d %H:%M') 清理 $process_name nohup.out" >>"$log"
-            fi
+        if Log_Reset "nohup.out"; then
+            \cp -f nohup.out nohup.out.bak \
+            && :> nohup.out \
+            && echo "$(date +'%Y-%m-%d %H:%M') 清理 $process_name nohup.out" >>"$log"
         fi
         # 提取参数
         args="$(echo "$process" | awk '{for (i=2;i<=NF;i++) printf $i" "}' | xargs)"

@@ -1,12 +1,12 @@
 #!/bin/bash
 # 进程守护列表
 # 守护进程的执行文件（绝对路径）与参数写入脚本文件同目录下 daemon-list 文本
-# 在进程所在目录执行文件，例如：setsid nohup process >> nohup.out 2>&1 &
+# 在进程所在目录执行文件，例如：setsid nohup process >> process.log 2>&1 &
 # 每一行为一个进程
 # $1 为检查间隔时间，单位秒，缺省为 3
-# 不支持配置重定向，默认输出重定 nohup.out
+# 不支持配置重定向，默认输出重定 process.log
 # 参数不支持特殊正则符号
-# nohup.out 保留 512M 大小，超过备份后重置，备份只保留 1 份
+# process.log 保留 512M 大小，超过备份后重置，备份只保留 1 份
 
 path="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 daemon_list="${path}/daemon-list"
@@ -49,10 +49,10 @@ while true; do
         # 打开目录
         cd -- "$(dirname -- "$process_path")" >>"$log" 2>&1 || continue
         process_name="$(basename -- "$process_path")"
-        if Log_Reset "nohup.out"; then
-            \cp -f nohup.out nohup.out.bak \
-            && :> nohup.out \
-            && echo "$(date +'%Y-%m-%d %H:%M') 清理 $process_name nohup.out" >>"$log"
+        if Log_Reset ""${process_name}.log""; then
+            \cp -f "${process_name}.log" "${process_name}.log.bak" \
+            && :> "${process_name}.log" \
+            && echo "$(date +'%Y-%m-%d %H:%M') 清理 $process_name "${process_name}.log"" >>"$log"
         fi
         # 提取参数
         args="$(echo "$process" | awk '{for (i=2;i<=NF;i++) printf $i" "}' | xargs)"
@@ -63,7 +63,7 @@ while true; do
         fi
         if ! pgrep -fx -- "$cmd" >/dev/null 2>&1; then
             test -x "$process_name" || chmod +x "$process_name"
-            (setsid nohup $cmd >> nohup.out 2>&1 &)
+            (setsid nohup $cmd >> "${process_name}.log" 2>&1 &)
             echo "$(date +'%Y-%m-%d %H:%M') 启动 $process" >>"$log"
         fi
     done < "$daemon_list"

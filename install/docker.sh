@@ -1,109 +1,107 @@
 #!/bin/bash
-# 安装 docker
+# 安装 Docker
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/install/docker.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/install/docker.sh)"
 
-set -ex
+set -euo pipefail
 
-# debian
-# https://docs.docker.com/engine/install/debian/#uninstall-docker-engine
-function debian_install(){
-  sudo apt remove docker.io docker-doc docker-compose podman-docker containerd runc || true
-  sudo apt update
-  sudo apt install -y ca-certificates curl gnupg
+# --- 配置参数 ---
+DOCKER_MIRROR="download.docker.com"
+TENCENT_MIRROR="mirrors.cloud.tencent.com/docker-ce"
+DAEMON_JSON_PATH="/etc/docker/daemon.json"
 
-  sys_version=$(grep -w 'VERSION_CODENAME' /etc/os-release | awk -F '=' '{print $2}')
+# --- 辅助函数 ---
+log() { echo -e "\033[32m[INFO]\033[0m $1"; }
+error() { echo -e "\033[31m[ERROR]\033[0m $1"; exit 1; }
 
-  sudo mkdir -p /etc/apt/keyrings
-  curl -fsSL https://${MORROR}/linux/debian/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-  docker_list="deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${MORROR}/linux/debian ${sys_version} stable"
-  sudo sh -c "echo $docker_list > /etc/apt/sources.list.d/docker.list"
-  sudo apt update
-  sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-}
+# 环境探测
+if ! ping -c 1 -W 2 google.com &> /dev/null; then
+    log "国内网络环境切换至腾讯云镜像源"
+    MIRROR=$TENCENT_MIRROR
+else
+    MIRROR=$DOCKER_MIRROR
+fi
 
-# centos
-# https://docs.docker.com/engine/install/centos/
-function centos_install(){
-  
-  sudo sudo yum remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine || true
-
-  sudo yum install -y yum-utils
-  sudo yum-config-manager --add-repo https://${MORROR}/linux/$1/docker-ce.repo
-  sudo sed -i "s|download.docker.com|${MORROR}|g" /etc/yum.repos.d/docker-ce.repo 
-
-  sudo yum makecache fast || sudo dnf makecache || true
-  sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-}
-
-# rhel
-# https://docs.docker.com/engine/install/rhel/
-function rhel_install(){
-  sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine podman runc
-
-  sudo dnf -y install dnf-plugins-core
-  sudo dnf config-manager --add-repo https://${MORROR}/linux/$1/docker-ce.repo
-  sudo sed -i "s|download.docker.com|${MORROR}|g" /etc/yum.repos.d/docker-ce.repo
-
-  sudo dnf install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-}
-
-# arch
-# https://wiki.archlinux.org/title/Docker
-function arch_install(){
-  sudo pacman -S --noconfirm docker docker-compose
-}
-
-function set_registry_mirrors(){
-   # 腾讯云内网镜像源
-  if ping -c 1 mirror.ccs.tencentyun.com &> /dev/null; then
-    type jq || eval "$INSTALL jq"
-    jq '. + {"registry-mirrors": ["https://mirror.ccs.tencentyun.com"]}' /etc/docker/daemon.json > /tmp/docker-daemon.json \
-    && sudo mv /tmp/docker-daemon.json /etc/docker/daemon.json
-  fi
-}
-
-## 脚本开始 ##
-MORROR="download.docker.com"
-INSTALL=""
-ping -c 1 google.com &> /dev/null || MORROR="mirrors.cloud.tencent.com/docker-ce"
-
-# 版本选择
+# 获取发行版信息
 distro=$(grep '^ID=' /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
-case  $distro in
-  "debian")
-    INSTALL="sudo apt install -y jq"
-    debian_install
-    ;;
-  "rhel" | "almalinux")
-    INSTALL="sudo yum install -y"
-    rhel_install "rhel"
-    ;;
-  "centos")
-    INSTALL="sudo yum install -y"
-    centos_install "centos"
-    ;;
-  "arch")
-    INSTALL="sudo pacman -S --noconfirm"
-    arch_install
-    ;;
-  *)
-    echo "退出！系统不支持"
-    exit 1
-    ;;
-esac
+codename=$(grep 'VERSION_CODENAME' /etc/os-release | awk -F '=' '{print $2}' | sed 's/"//g')
 
-# docker 配置
-sudo mkdir -p /etc/docker
-sudo curl -fsSL -o /etc/docker/daemon.json https://raw.githubusercontent.com/qvgz/sh/master/file/docker-daemon.json \
-|| sudo curl -fsSL -o /etc/docker/daemon.json https://qvgz.org/sh/file/docker-daemon.json
+# --- 安装函数 ---
+install_docker() {
+    case $distro in
+        "debian" | "ubuntu")
+            sudo apt-get update
+            sudo apt-get install -y ca-certificates curl gnupg jq
+            sudo install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://${MIRROR}/linux/${distro}/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg --yes
 
-set_registry_mirrors
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://${MIRROR}/linux/${distro} ${codename:-stable} stable" | \
+            sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# 非root 用户加入 docker 用户组
+            sudo apt-get update
+            sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            ;;
+        "centos" | "almalinux" | "rocky")
+            sudo yum install -y yum-utils jq
+            sudo yum-config-manager --add-repo https://${MIRROR}/linux/centos/docker-ce.repo
+            sudo sed -i "s|download.docker.com|${MIRROR}|g" /etc/yum.repos.d/docker-ce.repo
+            sudo yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+            ;;
+        "arch")
+            sudo pacman -S --noconfirm docker docker-compose jq
+            ;;
+        *)
+            error "暂不支持的系统版本: $distro"
+            ;;
+    esac
+}
+
+# --- 配置 Docker ---
+configure_docker() {
+    sudo mkdir -p /etc/docker
+    # 基础配置
+    cat <<EOF | sudo tee $DAEMON_JSON_PATH > /dev/null
+{
+    "exec-opts": [
+        "native.cgroupdriver=systemd"
+    ],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "20m",
+        "max-file": "3",
+        "compress": "true"
+    },
+    "storage-driver": "overlay2",
+    "live-restore": true,
+    "features": {
+        "buildkit": true
+    },
+    "icc": false,
+    "ip-masq": true,
+    "ipv6": false,
+    "max-concurrent-downloads": 5,
+    "max-concurrent-uploads": 5,
+    "shutdown-timeout": 10
+}
+EOF
+
+    # 动态注入腾讯云内网加速（如果是腾讯云环境）
+    if ping -c 1 -W 1 mirror.ccs.tencentyun.com &> /dev/null; then
+        log "检测到腾讯云环境，注入内网镜像加速"
+        tmp=$(mktemp)
+        jq '.["registry-mirrors"] += ["https://mirror.ccs.tencentyun.com"]' $DAEMON_JSON_PATH > "$tmp" && sudo mv "$tmp" $DAEMON_JSON_PATH
+    fi
+}
+
+# --- 主流程 ---
+install_docker
+configure_docker
+
+# 用户组处理
 if [[ $(id -u) != "0" ]]; then
-    sudo usermod -aG docker $USER
-    newgrp docker
+    sudo usermod -aG docker "$USER"
+    log "已将当前用户加入 docker 组，需重新登录或运行 'newgrp docker' 生效"
 fi
 
 sudo systemctl enable --now docker
+log "Docker 安装完成！"

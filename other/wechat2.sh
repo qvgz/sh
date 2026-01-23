@@ -3,7 +3,6 @@
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/other/wechat2.sh)"
 # bash -c "$(curl -fsSL https://qvgz.org/sh/other/wechat2.sh)"
 
-
 set -euo pipefail
 
 SRC="/Applications/WeChat.app"

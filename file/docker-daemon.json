@@ -2,21 +2,21 @@
     "exec-opts": [
         "native.cgroupdriver=systemd"
     ],
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "20m",
+        "max-file": "3",
+        "compress": "true"
+    },
+    "storage-driver": "overlay2",
+    "live-restore": true,
     "features": {
         "buildkit": true
     },
-    "live-restore": true,
     "icc": false,
-    "log-driver": "json-file",
-    "log-opts": {
-        "cache-disabled": "false",
-        "cache-max-file": "5",
-        "cache-max-size": "50m",
-        "cache-compress": "true",
-        "env": "os,customer",
-        "labels": "somelabel",
-        "max-file": "5",
-        "max-size": "50m"
-    },
-    "storage-driver": "overlay2"
+    "ip-masq": true,
+    "ipv6": false,
+    "max-concurrent-downloads": 5,
+    "max-concurrent-uploads": 5,
+    "shutdown-timeout": 10
 }

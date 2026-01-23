@@ -1,5 +1,5 @@
 #!/bin/bash
-# 进程守护列表
+# 进程列表守护
 # 守护进程的执行文件（绝对路径）与参数写入脚本文件同目录下 daemon-list 文本
 # 在进程所在目录执行文件，例如：setsid nohup process >> process.log 2>&1 &
 # 每一行为一个进程

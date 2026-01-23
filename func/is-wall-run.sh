@@ -1,21 +1,29 @@
 #!/bin/bash
-# 墙内则执行一组命令
-# 接受全部参数，当作一条命令执行，参数为空不做任何操作
+# 判断在墙内执行一组命令
+# 注意：命令含有参数需要用用引号将命令和参数包裹
+# 示范：is_wall_run "ls -alh /tmp" "grep 'error' /var/log/syslog"
 
-# function is_wall_run_old(){
-#   if [[ "$*" ]] && ! ping -c 1 google.com ; then
-#     eval "$*"
-#   fi
-# }
-# is_wall_run "$*"
+is_wall_run() {
+    # 1. 预检：如果没有参数，直接返回，避免无意义的网络请求
+    if [[ $# -eq 0 ]]; then
+        return 0
+    fi
 
-# 注意，接受每个参数当作一条命令行执行
-# 多命令 is_wall_run 'cmd1' 'cmd2' 方式
-function is_wall_run(){
-  if ! ping -c 1 google.com ; then
-    for e in "$@" ; do
-      eval $e
-    done
-  fi
+    # 2. 网络探测 (Sensor)
+    # -I: 仅请求 Header (减少流量)
+    # -s: 静默模式 (不输出进度条)
+    # --connect-timeout 3: 限制 TCP 握手时间为 3 秒
+    # https://www.google.com: 标准测试靶点
+    # >/dev/null 2>&1: 屏蔽所有输出
+    if ! curl -Is --connect-timeout 3 https://www.google.com >/dev/null 2>&1; then
+
+        # 3. 执行逻辑 (Actuator)
+        for cmd in "$@"; do
+            # 使用 eval 在当前 Shell 上下文中执行
+            # 注意：必须确保传入的命令字符串是受信的，防止注入攻击
+            eval "$cmd"
+        done
+    fi
 }
+
 is_wall_run "$@"

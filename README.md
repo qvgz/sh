@@ -1,66 +1,49 @@
--e # cmd
+# cmd
 
-一些 shell 脚本 
+一些 shell 脚本
 
 ## install
 
-| 文件名 | 介绍 |
-| :- | :- |
-| [centos-7-kernel-lts.sh](https://github.com/qvgz/sh/blob/master/install/centos-7-kernel-lts.sh) | [ centos 7 安装长期支持内核](https://qvgz.org/sh/install/centos-7-kernel-lts.sh) |
-| [debian-cloud-kernel.sh](https://github.com/qvgz/sh/blob/master/install/debian-cloud-kernel.sh) | [ debian 安装 cloud 内核](https://qvgz.org/sh/install/debian-cloud-kernel.sh) |
-| [docker-compose.sh](https://github.com/qvgz/sh/blob/master/install/docker-compose.sh) | [ linux x86_64 安装 docker-compose](https://qvgz.org/sh/install/docker-compose.sh) |
-| [docker.sh](https://github.com/qvgz/sh/blob/master/install/docker.sh) | [ 安装 docker](https://qvgz.org/sh/install/docker.sh) |
-| [golang.sh](https://github.com/qvgz/sh/blob/master/install/golang.sh) | [ golang 安装最新版本](https://qvgz.org/sh/install/golang.sh) |
-| [watchexec.sh](https://github.com/qvgz/sh/blob/master/install/watchexec.sh) | [ linux 安装 watchexec gun 版本](https://qvgz.org/sh/install/watchexec.sh) |
-| [zoxide.sh](https://github.com/qvgz/sh/blob/master/install/zoxide.sh) | [ linux 安装 zoxide](https://qvgz.org/sh/install/zoxide.sh) | 
+| 文件名                                                                                          | 介绍                                                                                |
+| :---------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------- |
+| [centos-7-kernel-lts.sh](https://github.com/qvgz/sh/blob/master/install/centos-7-kernel-lts.sh) | [安装 CentOS 7 ELRepo LTS 内核](https://qvgz.org/sh/install/centos-7-kernel-lts.sh) |
+| [docker.sh](https://github.com/qvgz/sh/blob/master/install/docker.sh)                           | [安装 Docker](https://qvgz.org/sh/install/docker.sh)                                |
+| [watchexec.sh](https://github.com/qvgz/sh/blob/master/install/watchexec.sh)                     | [安装 watchexec](https://qvgz.org/sh/install/watchexec.sh)                          |
 
 ## ops
 
-| 文件名 | 介绍 |
-| :- | :- |
-| [archlinux-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/archlinux-rc-local.sh) | [ archlinux 使用 /etc/rc.local](https://qvgz.org/sh/ops/archlinux-rc-local.sh) |
-| [centos-ip-link-num.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-link-num.sh) | [ centos ip 连接数 ！仅测试 centos 7](https://qvgz.org/sh/ops/centos-ip-link-num.sh) |
-| [centos-ip-zero-link-down.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-zero-link-down.sh) | [ centos ip 0 连接数，关闭网卡、注释 ifcfg-eth ！仅测试 centos 5、7](https://qvgz.org/sh/ops/centos-ip-zero-link-down.sh) |
-| [daemon-list.sh](https://github.com/qvgz/sh/blob/master/ops/daemon-list.sh) | [ 进程守护列表](https://qvgz.org/sh/ops/daemon-list.sh) |
-| [daemon.sh](https://github.com/qvgz/sh/blob/master/ops/daemon.sh) | [ 进程守护](https://qvgz.org/sh/ops/daemon.sh) |
-| [debian-mirrors.sh](https://github.com/qvgz/sh/blob/master/ops/debian-mirrors.sh) | [ debian apt 源](https://qvgz.org/sh/ops/debian-mirrors.sh) |
-| [debian-rc-local.sh](https://github.com/qvgz/sh/blob/master/ops/debian-rc-local.sh) | [ debian 使用 /etc/rc.local](https://qvgz.org/sh/ops/debian-rc-local.sh) |
-| [delete-log.sh](https://github.com/qvgz/sh/blob/master/ops/delete-log.sh) | [ 删除日志](https://qvgz.org/sh/ops/delete-log.sh) |
-| [docker-cpu-use-max-calc.sh](https://github.com/qvgz/sh/blob/master/ops/docker-cpu-use-max-calc.sh) | [ 容器 cpu 指定使用比例](https://qvgz.org/sh/ops/docker-cpu-use-max-calc.sh) |
-| [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [ 删除镜像，设置保留几个版本](https://qvgz.org/sh/ops/docker-image-clean.sh) |
-| [docker-rm-grep-str.sh](https://github.com/qvgz/sh/blob/master/ops/docker-rm-grep-str.sh) | [ 筛选删除容器](https://qvgz.org/sh/ops/docker-rm-grep-str.sh) |
-| [docker-rm-no-run.sh](https://github.com/qvgz/sh/blob/master/ops/docker-rm-no-run.sh) | [ 删除未运行容器与卷](https://qvgz.org/sh/ops/docker-rm-no-run.sh) |
-| [inotifywait.sh](https://github.com/qvgz/sh/blob/master/ops/inotifywait.sh) | [ 文件目录变更执行脚本](https://qvgz.org/sh/ops/inotifywait.sh) |
-| [kill-grep-process.sh](https://github.com/qvgz/sh/blob/master/ops/kill-grep-process.sh) | [ 筛选杀死进程](https://qvgz.org/sh/ops/kill-grep-process.sh) |
-| [pip-package-update.sh](https://github.com/qvgz/sh/blob/master/ops/pip-package-update.sh) | [ pip 包更新](https://qvgz.org/sh/ops/pip-package-update.sh) |
-| [pip-update.sh](https://github.com/qvgz/sh/blob/master/ops/pip-update.sh) | [ pip 更新](https://qvgz.org/sh/ops/pip-update.sh) | 
+| 文件名                                                                                    | 介绍                                                                       |
+| :---------------------------------------------------------------------------------------- | :------------------------------------------------------------------------- |
+| [centos-ip-link-num.sh](https://github.com/qvgz/sh/blob/master/ops/centos-ip-link-num.sh) | [CentOS 公网 IP 连接数统计](https://qvgz.org/sh/ops/centos-ip-link-num.sh) |
+| [daemon-list.sh](https://github.com/qvgz/sh/blob/master/ops/daemon-list.sh)               | [进程列表守护](https://qvgz.org/sh/ops/daemon-list.sh)                     |
+| [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [Docker 镜像清理](https://qvgz.org/sh/ops/docker-image-clean.sh)           |
+| [nginx-log-rotate.sh](https://github.com/qvgz/sh/blob/master/ops/nginx-log-rotate.sh)     | [Nginx 日志轮询切割](https://qvgz.org/sh/ops/nginx-log-rotate.sh)          |
+| [wexec.sh](https://github.com/qvgz/sh/blob/master/ops/wexec.sh)                           | [文件目录变更执行命令](https://qvgz.org/sh/ops/wexec.sh)                   |
 
-## sys
+## func
 
-| 文件名 | 介绍 |
-| :- | :- |
-| [get-disk-size.sh](https://github.com/qvgz/sh/blob/master/sys/get-disk-size.sh) | [ 磁盘大小](https://qvgz.org/sh/sys/get-disk-size.sh) |
-| [get-disk-uuid.sh](https://github.com/qvgz/sh/blob/master/sys/get-disk-uuid.sh) | [ 磁盘 UUID](https://qvgz.org/sh/sys/get-disk-uuid.sh) |
-| [get-export-ip.sh](https://github.com/qvgz/sh/blob/master/sys/get-export-ip.sh) | [ 出口 IP](https://qvgz.org/sh/sys/get-export-ip.sh) |
-| [get-sys-version.sh](https://github.com/qvgz/sh/blob/master/sys/get-sys-version.sh) | [ 系统版本](https://qvgz.org/sh/sys/get-sys-version.sh) |
-| [get-user-name-list.sh](https://github.com/qvgz/sh/blob/master/sys/get-user-name-list.sh) | [ 用户列表](https://qvgz.org/sh/sys/get-user-name-list.sh) | 
+| 文件名                                                                                                 | 介绍                                                                             |
+| :----------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| [check-ip.sh](https://github.com/qvgz/sh/blob/master/func/check-ip.sh)                                 | [检查 IP 格式](https://qvgz.org/sh/func/check-ip.sh)                             |
+| [convert-middle-underline.sh](https://github.com/qvgz/sh/blob/master/func/convert-middle-underline.sh) | [转换中划线为下划线](https://qvgz.org/sh/func/convert-middle-underline.sh)       |
+| [create-passwd.sh](https://github.com/qvgz/sh/blob/master/func/create-passwd.sh)                       | [生成随机密码](https://qvgz.org/sh/func/create-passwd.sh)                        |
+| [get-domain-ip-dig.sh](https://github.com/qvgz/sh/blob/master/func/get-domain-ip-dig.sh)               | [获取域名公网 DNS 解析 IP](https://qvgz.org/sh/func/get-domain-ip-dig.sh)        |
+| [get-domain-ip-host.sh](https://github.com/qvgz/sh/blob/master/func/get-domain-ip-host.sh)             | [获取域名系统实际得到 IP](https://qvgz.org/sh/func/get-domain-ip-host.sh)        |
+| [get-export-ip.sh](https://github.com/qvgz/sh/blob/master/func/get-export-ip.sh)                       | [获取出口 IP](https://qvgz.org/sh/func/get-export-ip.sh)                         |
+| [get-real-script-path.sh](https://github.com/qvgz/sh/blob/master/func/get-real-script-path.sh)         | [获取运行脚本所在目录绝对路径](https://qvgz.org/sh/func/get-real-script-path.sh) |
+| [is-root.sh](https://github.com/qvgz/sh/blob/master/func/is-root.sh)                                   | [判断是否是 root 用户](https://qvgz.org/sh/func/is-root.sh)                      |
+| [is-wall-run.sh](https://github.com/qvgz/sh/blob/master/func/is-wall-run.sh)                           | [判断在墙内执行一组命令](https://qvgz.org/sh/func/is-wall-run.sh)                |
+| [is-yes.sh](https://github.com/qvgz/sh/blob/master/func/is-yes.sh)                                     | [判断是否同意](https://qvgz.org/sh/func/is-yes.sh)                               |
 
 ## macos
 
-| 文件名 | 介绍 |
-| :- | :- |
-| [brew.sh](https://github.com/qvgz/sh/blob/master/macos/brew.sh) | [ 记录 macOS 中 brew 应用](https://qvgz.org/sh/macos/brew.sh) |
-| [dir-git-pull.sh](https://github.com/qvgz/sh/blob/master/macos/dir-git-pull.sh) | [ 含有 .git 文件夹执行 git pull](https://qvgz.org/sh/macos/dir-git-pull.sh) |
-| [git-dropbox-ignored-mac.sh](https://github.com/qvgz/sh/blob/master/macos/git-dropbox-ignored-mac.sh) | [ Dropbox 忽略 git clone 文件夹](https://qvgz.org/sh/macos/git-dropbox-ignored-mac.sh) |
-| [ln-dir-desktop.sh](https://github.com/qvgz/sh/blob/master/macos/ln-dir-desktop.sh) | [ 桌面创建当前目录快捷方式](https://qvgz.org/sh/macos/ln-dir-desktop.sh) |
-| [obsidian-att-clean.sh](https://github.com/qvgz/sh/blob/master/macos/obsidian-att-clean.sh) | [ Obsidian 清理 0 链接附件](https://qvgz.org/sh/macos/obsidian-att-clean.sh) |
-| [wexec.sh](https://github.com/qvgz/sh/blob/master/macos/wexec.sh) | [ 文件目录变更执行脚本](https://qvgz.org/sh/macos/wexec.sh) | 
+| 文件名                                                                                      | 介绍                                                                        |
+| :------------------------------------------------------------------------------------------ | :-------------------------------------------------------------------------- |
+| [brew.sh](https://github.com/qvgz/sh/blob/master/macos/brew.sh)                             | [记录维护 brew 应用列表](https://qvgz.org/sh/macos/brew.sh)                 |
+| [obsidian-att-clean.sh](https://github.com/qvgz/sh/blob/master/macos/obsidian-att-clean.sh) | [Obsidian 清理 0 链接附件](https://qvgz.org/sh/macos/obsidian-att-clean.sh) |
 
 ## other
 
-| 文件名 | 介绍 |
-| :- | :- |
-| [cloudflare-ddns.sh](https://github.com/qvgz/sh/blob/master/other/cloudflare-ddns.sh) | [ Cloudflare DDNS](https://qvgz.org/sh/other/cloudflare-ddns.sh) |
-| [log.sh](https://github.com/qvgz/sh/blob/master/other/log.sh) | [ 日志相关](https://qvgz.org/sh/other/log.sh) |
-| [path-add-path.sh](https://github.com/qvgz/sh/blob/master/other/path-add-path.sh) | [ 添加 PATH](https://qvgz.org/sh/other/path-add-path.sh) |
-| [wechat2.sh](https://github.com/qvgz/sh/blob/master/other/wechat2.sh) | [ macOS 微信双开](https://qvgz.org/sh/other/wechat2.sh) |
+| 文件名                                                                | 介绍                                                   |
+| :-------------------------------------------------------------------- | :----------------------------------------------------- |
+| [wechat2.sh](https://github.com/qvgz/sh/blob/master/other/wechat2.sh) | [macOS 微信双开](https://qvgz.org/sh/other/wechat2.sh) |

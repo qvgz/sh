@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 转换中划线为下划线
 
 convert_middle_underline() {

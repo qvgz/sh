@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 文件目录变更执行命令
 # https://github.com/watchexec/watchexec/
 # bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/wexec.sh)"
@@ -14,8 +14,8 @@ fi
 
 # 2. 参数校验
 if [[ $# -eq 0 ]]; then
-    echo "Usage: wexec <your_command>" >&2
-    echo "Example: wexec run start" >&2
+    echo "Usage: ./wexec.sh <your_command>" >&2
+    echo "Example: ./wexec.sh ls" >&2
     exit 1
 fi
 

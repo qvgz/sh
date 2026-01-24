@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
-# 生成随机密码
-# $1 为指定位数，缺省为 10 位
+# 生成随机用户名
+# $1 为指定位数，缺省为 7 位
 
 create_passwd() {
-  local length="${1:-10}"
+  local length="${1:-7}"
 
   if ! [[ "$length" =~ ^[0-9]+$ ]]; then
     echo "Error: length must be an integer." >&2
     return 1
   fi
-  if (( length < 4 )); then
-    echo "Error: Password length must be at least 4." >&2
+  if (( length < 1 )); then
+    echo "Error: Name length must be at least 1." >&2
     return 1
   fi
 
@@ -21,8 +21,7 @@ create_passwd() {
   local -r digits="23456789"
   local -r lower="abcdefghijkmnpqrstuvwxyz"
   local -r upper="ABCDEFGHJKMNPQRSTUVWXYZ"
-  local -r symbols="!@#$%^&*()-+=[]{}|;:,.<>?"
-  local -r all_chars="${digits}${lower}${upper}${symbols}"
+  local -r all_chars="${digits}${lower}${upper}"
 
   # 从 charset 均匀取 1 个字符：拒绝采样，避免取模偏差
   rand_char() {
@@ -40,15 +39,9 @@ create_passwd() {
   }
 
   local passwd=""
-  # 强制复杂度：每类至少 1 个（全程 /dev/urandom）
-  passwd+="$(rand_char "$digits")"
-  passwd+="$(rand_char "$lower")"
-  passwd+="$(rand_char "$upper")"
-  passwd+="$(rand_char "$symbols")"
 
   # 填充剩余
-  local -i remaining=$(( length - 4 ))
-  for ((i=0; i<remaining; i++)); do
+  for ((i=0; i<length; i++)); do
     passwd+="$(rand_char "$all_chars")"
   done
 

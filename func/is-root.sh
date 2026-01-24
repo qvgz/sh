@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 判断是否是 root 用户
 
 is_root() {

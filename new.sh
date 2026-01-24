@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 创建新脚本标准化工具
 # 用法: ./new.sh <category> <filename> [description]
 
@@ -63,7 +63,7 @@ esac
 
 # 6. 生成文件 (优化 heredoc 和格式)
 cat << EOF > "$new_file_path"
-#!/bin/bash
+#!/usr/bin/env bash
 # -----------------------------------------------------------------------------
 # 脚本描述: $intro
 # 快速执行 (GitHub): bash -c "\$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/${category}/${file_name}.sh)"

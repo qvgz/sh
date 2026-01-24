@@ -1,29 +1,36 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 判断在墙内执行一组命令
-# 注意：命令含有参数需要用用引号将命令和参数包裹
-# 示范：is_wall_run "ls -alh /tmp" "grep 'error' /var/log/syslog"
+# 注意：命令含有参数需要用引号将命令和参数包裹
+# 示例：is_wall_run "ls -alh /tmp" "grep 'error' /var/log/syslog"
 
 is_wall_run() {
-    # 1. 预检：如果没有参数，直接返回，避免无意义的网络请求
-    if [[ $# -eq 0 ]]; then
-        return 0
-    fi
+  # 1) 无参数：无需探测
+  if [[ $# -eq 0 ]]; then
+    return 0
+  fi
 
-    # 2. 网络探测 (Sensor)
-    # -I: 仅请求 Header (减少流量)
-    # -s: 静默模式 (不输出进度条)
-    # --connect-timeout 3: 限制 TCP 握手时间为 3 秒
-    # https://www.google.com: 标准测试靶点
-    # >/dev/null 2>&1: 屏蔽所有输出
-    if ! curl -Is --connect-timeout 3 https://www.google.com >/dev/null 2>&1; then
+  # 2) 依赖检查
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "Error: 'curl' command not found." >&2
+    return 3
+  fi
 
-        # 3. 执行逻辑 (Actuator)
-        for cmd in "$@"; do
-            # 使用 eval 在当前 Shell 上下文中执行
-            # 注意：必须确保传入的命令字符串是受信的，防止注入攻击
-            eval "$cmd"
-        done
-    fi
+  # 3) 网络探测：增加总超时，避免挂住
+  if ! curl -Is --connect-timeout 3 --max-time 5 https://www.google.com >/dev/null 2>&1; then
+    local rc=1
+    local cmd
+
+    # 4) 执行命令：保持“传入字符串命令”的用法，但避免 eval
+    # 使用 bash -lc：仍支持管道/重定向/引号等 shell 语法
+    for cmd in "$@"; do
+      if ! bash -lc "$cmd"; then
+        rc=2
+      fi
+    done
+    return "$rc"
+  fi
+
+  return 0
 }
 
 is_wall_run "$@"

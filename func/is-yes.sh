@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # 判断是否同意
 # 同意标准：回车 y yes (大小写不限)，其他输入为 no
 

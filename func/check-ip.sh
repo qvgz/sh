@@ -1,5 +1,5 @@
-#!/bin/bash
-# 检查 IP 格式
+#!/usr/bin/env bash
+# 检查 IP 格式 (IPv4)
 
 check_ip() {
     local ip="$1"
@@ -14,3 +14,5 @@ check_ip() {
     # 直接利用 Bash 内置正则引擎的状态码
     [[ "$ip" =~ $regex ]] || return 1
 }
+
+check_ip "$1"

@@ -81,7 +81,14 @@ configure_docker() {
     "ipv6": false,
     "max-concurrent-downloads": 5,
     "max-concurrent-uploads": 5,
-    "shutdown-timeout": 10
+    "shutdown-timeout": 10,
+    "default-ulimits": {
+    "nofile": {
+        "Name": "nofile",
+        "Soft": 262144,
+        "Hard": 262144
+        }
+    }
 }
 EOF
 
@@ -91,6 +98,17 @@ EOF
         tmp=$(mktemp)
         jq '.["registry-mirrors"] += ["https://mirror.ccs.tencentyun.com"]' $DAEMON_JSON_PATH > "$tmp" && sudo mv "$tmp" $DAEMON_JSON_PATH
     fi
+
+    #
+    echo "Optimization completed successfully."
+
+    # 配置 nofile
+    sudo mkdir -p /etc/systemd/system/docker.service.d
+    cat <<'EOF' | sudo tee /etc/systemd/system/docker.service.d/10-nofile.conf > /dev/null
+[Service]
+LimitNOFILE=1048576
+EOF
+    sudo systemctl daemon-reload
 }
 
 # --- 主流程 ---

@@ -21,8 +21,8 @@ fi
 
 # 环境探测
 MIRROR="$DOCKER_MIRROR"
-if ! curl -fsSL --connect-timeout 2 --max-time 4 "https://${DOCKER_MIRROR}/" >/dev/null 2>&1; then
-  log "无法访问 ${DOCKER_MIRROR}，切换至腾讯云镜像源"
+if ! curl -fsSL --connect-timeout 2 --max-time 4 "https://www.google.com" >/dev/null 2>&1; then
+  log "切换至腾讯云镜像源"
   MIRROR="$TENCENT_MIRROR"
 fi
 

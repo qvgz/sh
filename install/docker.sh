@@ -78,8 +78,8 @@ configure_docker() {
   cat <<'EOF' | $SUDO tee "$DAEMON_JSON_PATH" >/dev/null
 {
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "log-driver": "json-file",
-  "log-opts": { "max-size": "20m", "max-file": "3", "compress": "true" },
+  "log-driver": "local",
+  "log-opts": { "max-size": "20m", "max-file": "3"},
   "storage-driver": "overlay2",
   "live-restore": true,
   "features": { "buildkit": true },
@@ -88,10 +88,7 @@ configure_docker() {
   "ipv6": false,
   "max-concurrent-downloads": 5,
   "max-concurrent-uploads": 5,
-  "shutdown-timeout": 10,
-  "default-ulimits": {
-    "nofile": { "Name": "nofile", "Soft": 262144, "Hard": 262144 }
-  }
+  "shutdown-timeout": 10
 }
 EOF
 
@@ -107,11 +104,13 @@ EOF
   # JSON 合法性校验（不改变功能，只防止写坏）
   $SUDO jq -e . "$DAEMON_JSON_PATH" >/dev/null || error "daemon.json 非法 JSON"
 
-  # nofile：systemd drop-in
+  # nofile nproc：systemd drop-in
   $SUDO mkdir -p /etc/systemd/system/docker.service.d
-  cat <<'EOF' | $SUDO tee /etc/systemd/system/docker.service.d/10-nofile.conf >/dev/null
+  cat <<'EOF' | $SUDO tee /etc/systemd/system/docker.service.d/10-nofile-nproc.conf >/dev/null
 [Service]
 LimitNOFILE=1048576
+LimitNPROC=65535
+TasksMax=infinity
 EOF
 
   $SUDO systemctl daemon-reload

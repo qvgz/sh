@@ -6,7 +6,7 @@
 # 3) journald 限额（避免日志打爆系统盘）
 # 4) 启动内核模块 br_netfilter nf_conntrack
 # 5) sysctl
-# 6) 配置 systemd 默认 nofile
+# 6) 配置全局 nofile nproc (示范脚本不配置)
 # 7) 关闭：SELinux / firewalld
 # 8) 配置 sshd
 # 9) 配置时区 Asia/Shanghai
@@ -150,14 +150,29 @@ EOF
 sysctl --system >/dev/null
 
 # -------------------------
-# 6) 配置 systemd 默认 nofile
+# 6) 配置全局 nofile nproc (示范默认不配置)
 # -------------------------
-mkdir -p /etc/systemd/system.conf.d
-cat > /etc/systemd/system.conf.d/10-nofile.conf <<'EOF'
+conf_global_nofile_nproc(){
+  # systemd nofile nproc
+  mkdir -p /etc/systemd/system.conf.d
+  cat > /etc/systemd/system.conf.d/10-nofile-nproc.conf <<'EOF'
 [Manager]
 DefaultLimitNOFILE=1048576
+DefaultLimitNPROC=65535
+TasksMax=infinity
 EOF
-systemctl daemon-reexec
+  systemctl daemon-reexec
+
+  # 终端进程 nofile nproc
+  mkdir -p /etc/security/limits.d/
+  cat > /etc/security/limits.d/10-nofile-nproc.conf <<'EOF'
+* soft nofile 1048576
+* hard nofile 1048576
+* soft nproc 65535
+* hard nproc 65535
+EOF
+}
+
 
 # -------------------------
 # 7) 关闭：SELinux / firewalld

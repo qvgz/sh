@@ -17,6 +17,7 @@
 | 文件名 | 介绍 |
 | :- | :- |
 | [centos-optimize.sh](https://github.com/qvgz/sh/blob/master/ops/centos-optimize.sh) | [CentOS 9/10 容器云服务器优化](https://qvgz.org/sh/ops/centos-optimize.sh) |
+| [cleanup-run.sh](https://github.com/qvgz/sh/blob/master/ops/cleanup-run.sh) | [脚本停止/终端关闭时进程终止](https://qvgz.org/sh/ops/cleanup-run.sh) |
 | [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [Docker 镜像清理](https://qvgz.org/sh/ops/docker-image-clean.sh) |
 | [ip-conn-stat.sh](https://github.com/qvgz/sh/blob/master/ops/ip-conn-stat.sh) | [TCP 连接统计](https://qvgz.org/sh/ops/ip-conn-stat.sh) |
 | [nginx-log-rotate.sh](https://github.com/qvgz/sh/blob/master/ops/nginx-log-rotate.sh) | [Nginx 日志轮询切割](https://qvgz.org/sh/ops/nginx-log-rotate.sh) |

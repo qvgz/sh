@@ -36,6 +36,7 @@
 | [get-domain-ip-dig.sh](https://github.com/qvgz/sh/blob/master/func/get-domain-ip-dig.sh) | [获取域名公网 DNS 解析 IP (IPv4)](https://qvgz.org/sh/func/get-domain-ip-dig.sh) |
 | [get-domain-ip-host.sh](https://github.com/qvgz/sh/blob/master/func/get-domain-ip-host.sh) | [获取域名系统实际得到 IP（IPv4）](https://qvgz.org/sh/func/get-domain-ip-host.sh) |
 | [get-export-ip.sh](https://github.com/qvgz/sh/blob/master/func/get-export-ip.sh) | [获取出口 IP](https://qvgz.org/sh/func/get-export-ip.sh) |
+| [get-ip-info.sh](https://github.com/qvgz/sh/blob/master/func/get-ip-info.sh) | [获取 IP 信息](https://qvgz.org/sh/func/get-ip-info.sh) |
 | [get-real-script-path.sh](https://github.com/qvgz/sh/blob/master/func/get-real-script-path.sh) | [获取运行脚本所在目录绝对路径](https://qvgz.org/sh/func/get-real-script-path.sh) |
 | [is-root.sh](https://github.com/qvgz/sh/blob/master/func/is-root.sh) | [判断是否是 root 用户](https://qvgz.org/sh/func/is-root.sh) |
 | [is-wall-run.sh](https://github.com/qvgz/sh/blob/master/func/is-wall-run.sh) | [判断在墙内执行一组命令](https://qvgz.org/sh/func/is-wall-run.sh) |

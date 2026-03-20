@@ -25,21 +25,27 @@ get_export_ip() {
     local ip_regex="^(${octet}\.){3}${octet}$"
 
     local export_ip=""
-    local max_retries=10
-    local i api
+    local api idx
+    local available_apis=("${apis[@]}")
+    local failed_apis=()
 
-    # 3) 固定次数尝试
-    for ((i=1; i<=max_retries; i++)); do
-        api="${apis[$((RANDOM % ${#apis[@]}))]}"
+    # 3) 随机尝试可用接口，失败接口移出资源池
+    while ((${#available_apis[@]} > 0)); do
+        idx=$((RANDOM % ${#available_apis[@]}))
+        api="${available_apis[$idx]}"
         export_ip="$(curl -sL --connect-timeout 3 --max-time 5 "$api" | tr -d '[:space:]')"
 
         if [[ "$export_ip" =~ $ip_regex ]]; then
             echo "$export_ip"
             return 0
         fi
+
+        failed_apis+=("$api")
+        unset 'available_apis[idx]'
+        available_apis=("${available_apis[@]}")
     done
 
-    echo "Error: 无法获取出口 IP，已重试 ${max_retries} 次。" >&2
+    echo "Error: 无法获取出口 IP，全部接口均已失败 (${#failed_apis[@]} 个)." >&2
     return 1
 }
 

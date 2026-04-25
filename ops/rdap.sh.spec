@@ -1,0 +1,34 @@
+# 查询域名信息
+
+需求描述：
+- 一个域名，只有一次成功的 whois 或 rdap 接口查询。
+- 不做命令依赖检查。
+- 1～N 查询接口
+  - 接口超时使用下一个，直至查询成功返回信息。
+  - 全部查询失败，返回告知信息。
+  - 接口 https://rdap.verisign.com/com/v1/domain/，https://rdap.markmonitor.com/rdap/domain/。
+  - 接口可以方便添加删减
+- rdap.sh domain，只返回 expiration，last changed ，registration，nameservers
+  - 输入 domain.com 或 a.domain.com 或 a.a.domain.com，提取 domain.com 查询。
+  - 返回信息两列，第一列 eventAction，第二列 eventDate（格式处理为 2028-10-11），或者第一列 nameservers，第二列 ldhName 值（多个值，只输出第一个）。
+- 优先使用 whois 命令查询，whois 查询失败，再使用 rdap 接口查询。
+  - whois 查询失败判断条件，取不到 “Registry Expiry Date” 值。
+  - 输出格式与 rdap 保持一致。
+  - rdap whois 字段对应：registration “Creation Date”，expiration “Registry Expiry Date”，last changed “ Updated Date”，nameservers “Name Server”。
+- rdap.sh [-v] domain 完整输出
+  - whois 查询完整输出。
+  - rdap 查询，jq 高亮完整输出。
+- rdap.sh [-f file_path] [-d number]
+  - [-f file_path] 指定文本读取域名列表查询。
+    - file_path 没指定，读取脚本同目录 rdap.sh.txt。
+    - 约定域名列表文件为两列，第一类域名，第二列日期。第二列可能是空或 X。
+    - 使用域名查询，查询结果 expiration 值更新至日期列（格式处理为 2028-10-11）。域名查询失败，日期列值 X。
+    - 域名列表文件查询结束，日期列值 X 行置顶，其余行按日期列排序，又上到下，由近到远。
+    - 更改域名列表文件前备份，备份文件路径 file_path.bak，该文件存在覆盖不提醒。
+    - 存在一个变量，控制域名查询间隔秒（缺省 3s）。
+  - [-d number]
+    - number 缺省 30 天
+    - number 天内到期域名，写入脚本同目录 rdap.sh.numberd.txt 中。
+    - 约定格式两类，第一列域名，第二列到期天数。
+    - 查询失败域名写入 rdap.sh.numberd.txt，到期天数 X。
+    - rdap.sh.numberd.txt 该文件存在覆盖不提醒。

@@ -8,6 +8,8 @@ github="https://github.com/qvgz/sh/blob/master/"
 outfile="README.md"
 
 generate_readme() {
+  exclude_suffixes=(".spec")
+
   cat > "$outfile" <<'EOF'
 # cmd
 
@@ -28,6 +30,10 @@ EOF
           [[ -n "${filepath:-}" ]] || continue
 
           file_name="${filepath##*/}"
+          for suffix in "${exclude_suffixes[@]}"; do
+            [[ -n "$suffix" && "$file_name" == *"$suffix" ]] && continue 2
+          done
+
           intro="$(sed -n '2s/^#[[:space:]]*//p' "$filepath" || true)"
           [[ -n "${intro:-}" ]] || intro="-"
 

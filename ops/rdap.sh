@@ -64,6 +64,25 @@ query_whois() {
   whois "$1"
 }
 
+query_whois_with_expiration() {
+  local domain="$1"
+  local body date attempt
+
+  for attempt in 1 2 3; do
+    if body="$(query_whois "$domain" 2>/dev/null)"; then
+      date="$(whois_expiration_date <<<"$body")"
+      if [[ -n "$date" ]]; then
+        printf '%s\n' "$body"
+        return 0
+      fi
+    fi
+
+    [[ "$attempt" != "3" ]] && sleep "$query_interval"
+  done
+
+  return 1
+}
+
 print_rdap_info() {
   jq -r '
     def event_date($action):
@@ -121,7 +140,7 @@ print_domain_info() {
   local domain="$1"
   local body parsed date
 
-  if body="$(query_whois "$domain" 2>/dev/null)"; then
+  if body="$(query_whois_with_expiration "$domain")"; then
     date="$(whois_expiration_date <<<"$body")"
     parsed="$(print_whois_info <<<"$body")"
     if [[ -n "$date" && -n "$parsed" ]]; then
@@ -145,7 +164,7 @@ print_domain_info() {
 print_domain() {
   local verbose="$1"
   local input="$2"
-  local domain body date
+  local domain body
 
   domain="$(root_domain "$input")"
   if [[ -z "$domain" ]]; then
@@ -154,12 +173,9 @@ print_domain() {
   fi
 
   if [[ "$verbose" == "1" ]]; then
-    if body="$(query_whois "$domain" 2>/dev/null)"; then
-      date="$(whois_expiration_date <<<"$body")"
-      if [[ -n "$date" ]]; then
-        printf '%s\n' "$body"
-        return 0
-      fi
+    if body="$(query_whois_with_expiration "$domain")"; then
+      printf '%s\n' "$body"
+      return 0
     fi
 
     body="$(query_rdap "$domain")" || {
@@ -218,7 +234,7 @@ query_expiration_date() {
   local domain="$1"
   local body date
 
-  if body="$(query_whois "$domain" 2>/dev/null)"; then
+  if body="$(query_whois_with_expiration "$domain")"; then
     date="$(whois_expiration_date <<<"$body")"
     [[ -n "$date" ]] && printf '%s\n' "$date" && return 0
   fi

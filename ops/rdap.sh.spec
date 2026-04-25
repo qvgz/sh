@@ -11,8 +11,10 @@
 - rdap.sh domain，只返回 expiration，last changed ，registration，nameservers
   - 输入 domain.com 或 a.domain.com 或 a.a.domain.com，提取 domain.com 查询。
   - 返回信息两列，第一列 eventAction，第二列 eventDate（格式处理为 2028-10-11），或者第一列 nameservers，第二列 ldhName 值（多个值，只输出第一个）。
-- 优先使用 whois 命令查询，whois 查询失败，再使用 rdap 接口查询。
+- 优先使用 whois 命令查询
   - whois 查询失败判断条件，取不到 “Registry Expiry Date” 值。
+  - whois 每次查询失败，间隔 N 秒后（与文本域名列表查询间隔秒相同），再重试。
+  - 累计使用 whois 命令查询 3 次仍然失败，使用 rdap 接口查询。
   - 输出格式与 rdap 保持一致。
   - rdap whois 字段对应：registration “Creation Date”，expiration “Registry Expiry Date”，last changed “ Updated Date”，nameservers “Name Server”。
 - rdap.sh [-v] domain 完整输出

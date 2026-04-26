@@ -271,73 +271,80 @@ cached_query_expiration_date() {
   return 1
 }
 
-update_file() {
+resolve_file_path() {
   local file_path="$1"
-  local cache_file="${2:-}"
-  local tmp sorted domain query_domain _date new_date
 
-  if [[ ! -f "$file_path" ]]; then
-    echo "Error: 文件不存在 ${file_path}" >&2
-    return 1
+  if [[ -f "$file_path" ]]; then
+    printf '%s\n' "$file_path"
+    return 0
   fi
 
-  tmp="$(mktemp "${file_path}.tmp.XXXXXX")"
-  sorted="$(mktemp "${file_path}.sorted.XXXXXX")"
+  if [[ -f "$default_file" ]]; then
+    printf '%s\n' "$default_file"
+    return 0
+  fi
 
-  while read -r domain _date _ || [[ -n "${domain:-}" ]]; do
+  echo "Error: 文件不存在 ${file_path}，默认文件也不存在 ${default_file}" >&2
+  return 1
+}
+
+sort_check_rows() {
+  local input_file="$1"
+  local output_file="$2"
+
+  awk '
+    NF < 3 { print "0 0 " $0; next }
+    { print "1 " $3 " " $0 }
+  ' "$input_file" | sort -k1,1n -k2,2n | cut -d' ' -f3- >"$output_file"
+}
+
+write_check_file() {
+  local file_path="$1"
+  local cache_file="${2:-}"
+  local output_file="${file_path}.check.txt"
+  local tmp domain query_domain new_date left_days
+
+  tmp="$(mktemp "${output_file}.tmp.XXXXXX")"
+
+  while read -r domain _ || [[ -n "${domain:-}" ]]; do
     [[ -z "${domain:-}" ]] && continue
 
-    new_date="X"
     query_domain="$(root_domain "$domain")"
-    if [[ -n "$query_domain" ]] && new_date="$(cached_query_expiration_date "$cache_file" "$query_domain")"; then
-      :
-    else
-      new_date="X"
+    if [[ -z "$query_domain" ]] || ! new_date="$(cached_query_expiration_date "$cache_file" "$query_domain")"; then
+      printf '%s X\n' "$domain" >>"$tmp"
+      sleep "$query_interval"
+      continue
     fi
 
-    printf '%s %s\n' "$domain" "$new_date" >>"$tmp"
+    if left_days="$(days_until "$new_date")"; then
+      printf '%s %s %s\n' "$domain" "$new_date" "$left_days" >>"$tmp"
+    else
+      printf '%s %s\n' "$domain" "$new_date" >>"$tmp"
+    fi
+
     sleep "$query_interval"
   done <"$file_path"
 
-  awk '
-    $2 == "X" { print "0 0000-00-00 " $0; next }
-    { print "1 " $2 " " $0 }
-  ' "$tmp" | sort -k1,1 -k2,2 | cut -d' ' -f3- >"$sorted"
-
-  cp -f "$file_path" "${file_path}.bak"
-  mv -f "$sorted" "$file_path"
+  sort_check_rows "$tmp" "$output_file"
   rm -f "$tmp"
 }
 
 write_due_file() {
   local file_path="$1"
   local days_limit="$2"
-  local cache_file="${3:-}"
-  local output_file="${path}/rdap.sh.${days_limit}d.txt"
-  local domain query_domain _date new_date left_days
+  local check_file="${file_path}.check.txt"
+  local output_file="${file_path}.check.${days_limit}d.txt"
+  local tmp
 
-  if [[ ! -f "$file_path" ]]; then
-    echo "Error: 文件不存在 ${file_path}" >&2
-    return 1
-  fi
+  tmp="$(mktemp "${output_file}.tmp.XXXXXX")"
 
-  : >"$output_file"
-  while read -r domain _date _ || [[ -n "${domain:-}" ]]; do
-    [[ -z "${domain:-}" ]] && continue
+  awk -v days_limit="$days_limit" '
+    $2 == "X" { print; next }
+    NF >= 3 && $3 >= 0 && $3 <= days_limit { print }
+  ' "$check_file" >"$tmp"
 
-    query_domain="$(root_domain "$domain")"
-    if [[ -z "$query_domain" ]] || ! new_date="$(cached_query_expiration_date "$cache_file" "$query_domain")"; then
-      printf '%s X\n' "$domain" >>"$output_file"
-      sleep "$query_interval"
-      continue
-    fi
-
-    if left_days="$(days_until "$new_date")" && ((left_days >= 0 && left_days <= days_limit)); then
-      printf '%s %s\n' "$domain" "$left_days" >>"$output_file"
-    fi
-
-    sleep "$query_interval"
-  done <"$file_path"
+  sort_check_rows "$tmp" "$output_file"
+  rm -f "$tmp"
 }
 
 main() {
@@ -386,18 +393,11 @@ main() {
 
   if [[ "$file_mode" == "1" || "$due_mode" == "1" ]]; then
     query_cache="$(mktemp "${TMPDIR:-/tmp}/rdap-cache.XXXXXX")"
-  fi
-
-  if [[ "$file_mode" == "1" ]]; then
-    update_file "$file_path" "$query_cache"
-    if [[ "$due_mode" != "1" ]]; then
-      rm -f "$query_cache"
-      return
+    file_path="$(resolve_file_path "$file_path")"
+    write_check_file "$file_path" "$query_cache"
+    if [[ "$due_mode" == "1" ]]; then
+      write_due_file "$file_path" "$due_days"
     fi
-  fi
-
-  if [[ "$due_mode" == "1" ]]; then
-    write_due_file "$file_path" "$due_days" "$query_cache"
     rm -f "$query_cache"
     return
   fi

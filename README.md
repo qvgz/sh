@@ -23,6 +23,7 @@
 | [nginx-log-rotate.sh](https://github.com/qvgz/sh/blob/master/ops/nginx-log-rotate.sh) | [Nginx 日志轮询切割](https://qvgz.org/sh/ops/nginx-log-rotate.sh) |
 | [proc-watch-list.sh](https://github.com/qvgz/sh/blob/master/ops/proc-watch-list.sh) | [进程列表守护](https://qvgz.org/sh/ops/proc-watch-list.sh) |
 | [rdap.sh](https://github.com/qvgz/sh/blob/master/ops/rdap.sh) | [查询域名信息](https://qvgz.org/sh/ops/rdap.sh) |
+| [ssl-check.sh](https://github.com/qvgz/sh/blob/master/ops/ssl-check.sh) | [检测 SSL 证书信息](https://qvgz.org/sh/ops/ssl-check.sh) |
 | [wexec.sh](https://github.com/qvgz/sh/blob/master/ops/wexec.sh) | [文件目录变更执行命令](https://qvgz.org/sh/ops/wexec.sh) |
 
 

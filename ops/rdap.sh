@@ -51,10 +51,38 @@ query_rdap() {
   local api body
 
   for api in "${rdap_apis[@]}"; do
-    if body="$(curl -fsSL --connect-timeout 3 --max-time 8 "${api}${domain}" 2>/dev/null)"; then
+    if body="$(query_rdap_api "$api" "$domain")"; then
       printf '%s\n' "$body"
       return 0
     fi
+  done
+
+  return 1
+}
+
+query_rdap_api() {
+  local api="$1"
+  local domain="$2"
+
+  curl -fsSL --connect-timeout 3 --max-time 8 "${api}${domain}" 2>/dev/null
+}
+
+query_rdap_with_expiration() {
+  local domain="$1"
+  local api body date attempt
+
+  for attempt in 1 2 3; do
+    for api in "${rdap_apis[@]}"; do
+      if body="$(query_rdap_api "$api" "$domain")"; then
+        date="$(expiration_date <<<"$body" 2>/dev/null || true)"
+        if [[ -n "$date" ]]; then
+          printf '%s\n' "$body"
+          return 0
+        fi
+      fi
+    done
+
+    [[ "$attempt" != "3" ]] && sleep "$query_interval"
   done
 
   return 1
@@ -86,13 +114,18 @@ query_whois_with_expiration() {
 print_rdap_info() {
   jq -r '
     def event_date($action):
-      [.events[] | select(.eventAction == $action) | .eventDate | split("T")[0]][0] // empty;
+      [
+        (.events // [])[]
+        | select(.eventAction == $action)
+        | (.eventDate // "" | split("T")[0])
+        | select(. != "")
+      ][0] // empty;
 
     [
       ["expiration", event_date("expiration")],
       ["last changed", event_date("last changed")],
       ["registration", event_date("registration")],
-      ["nameservers", (.nameservers[0].ldhName // empty)]
+      ["nameservers", (((.nameservers // [])[0].ldhName) // empty)]
     ][]
     | select(length == 2 and .[1] != "")
     | @tsv
@@ -149,8 +182,8 @@ print_domain_info() {
     fi
   fi
 
-  if body="$(query_rdap "$domain")"; then
-    parsed="$(print_rdap_info <<<"$body")"
+  if body="$(query_rdap_with_expiration "$domain")"; then
+    parsed="$(print_rdap_info <<<"$body" 2>/dev/null || true)"
     if [[ -n "$parsed" ]]; then
       printf '%s\n' "$parsed"
       return 0
@@ -206,7 +239,12 @@ days_until() {
 
 expiration_date() {
   jq -r '
-    [.events[] | select(.eventAction == "expiration") | .eventDate | split("T")[0]][0] // empty
+    [
+      (.events // [])[]
+      | select(.eventAction == "expiration")
+      | (.eventDate // "" | split("T")[0])
+      | select(. != "")
+    ][0] // empty
   '
 }
 
@@ -239,8 +277,8 @@ query_expiration_date() {
     [[ -n "$date" ]] && printf '%s\n' "$date" && return 0
   fi
 
-  if body="$(query_rdap "$domain")"; then
-    date="$(expiration_date <<<"$body")"
+  if body="$(query_rdap_with_expiration "$domain")"; then
+    date="$(expiration_date <<<"$body" 2>/dev/null || true)"
     [[ -n "$date" ]] && printf '%s\n' "$date" && return 0
   fi
 
@@ -256,9 +294,10 @@ cached_query_expiration_date() {
     $1 == domain { print $2; found = 1; exit }
     END { if (!found) exit 1 }
   ' "$cache_file")"; then
-    [[ "$cached" == "X" ]] && return 1
-    printf '%s\n' "$cached"
-    return 0
+    if [[ "$cached" != "X" ]]; then
+      printf '%s\n' "$cached"
+      return 0
+    fi
   fi
 
   if cached="$(query_expiration_date "$domain")"; then
@@ -267,7 +306,6 @@ cached_query_expiration_date() {
     return 0
   fi
 
-  [[ -n "$cache_file" ]] && printf '%s\tX\n' "$domain" >>"$cache_file"
   return 1
 }
 

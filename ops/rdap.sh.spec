@@ -18,6 +18,8 @@
   - whois 查询失败判断条件，取不到 “Registry Expiry Date” 值
   - whois 查询失败，间隔 N 秒后（与文本域名列表查询间隔秒相同）重试，最多查询 3 次
   - whois 查询无法获取到值，使用 rdap 接口查询
+  - rdap 接口只有解析到 expiration 值才视为成功；HTTP 成功但无 expiration 值，继续尝试下一个接口
+  - rdap 接口查询失败或无法解析 expiration 值，间隔 N 秒后重试，最多查询 3 轮
   - 输出格式与 rdap 保持一致，rdap whois 字段对应：
     - registration “Creation Date”
     - expiration “Registry Expiry Date”
@@ -31,6 +33,7 @@
     - file_path 不存在或没指定，读取脚本同目录 rdap.sh.txt
     - 约定 file_path 为一列域名
     - 使用域名查询，查询结果写入 file_path.check.txt 中
+      - 同一次运行内仅缓存已成功获取的根域名 expiration 值；失败不缓存，避免一次限流导致同根域名后续行直接失败
       - 约定 file_path.check.txt 为 三列
         - 第一列 域名
         - 第二列 expiration 值，格式处理为（2028-10-11）

@@ -28,6 +28,7 @@
       - enddate 为X 值置顶
   - 每个域名，只有一次成功的查询。
   - 不做命令依赖检查。
+  - file_path.check.txt 与 file_path.check.numberd.txt 列对齐，更加直观。
 
   
   

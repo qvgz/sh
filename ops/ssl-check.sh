@@ -150,11 +150,37 @@ resolve_file_path() {
 sort_check_file() {
   local input_file="$1"
   local output_file="$2"
+  local tmp
 
+  tmp="$(mktemp "${output_file}.sort.XXXXXX")"
   awk '
     $2 == "X" { print "0 0 " $0; next }
     { printf "1 %012d %s\n", $3, $0 }
-  ' "$input_file" | sort -k1,1n -k2,2n | cut -d' ' -f3- >"$output_file"
+  ' "$input_file" | sort -k1,1n -k2,2n | cut -d' ' -f3- >"$tmp"
+  format_check_file "$tmp" >"$output_file"
+  rm -f "$tmp"
+}
+
+format_check_file() {
+  awk '
+    {
+      domains[NR] = $1
+      dates[NR] = $2
+      days[NR] = $3
+      if (length($1) > domain_width) domain_width = length($1)
+      if (length($2) > date_width) date_width = length($2)
+    }
+
+    END {
+      for (i = 1; i <= NR; i++) {
+        if (days[i] == "") {
+          printf "%-*s  %s\n", domain_width, domains[i], dates[i]
+        } else {
+          printf "%-*s  %-*s  %s\n", domain_width, domains[i], date_width, dates[i], days[i]
+        }
+      }
+    }
+  ' "$1"
 }
 
 write_check_file() {

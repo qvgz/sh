@@ -49,3 +49,4 @@
     - file_path.check.[number]d.txt 约定格式与 file_path.check.txt 一致
       - 与 file_path.check.txt 同规则排序
     - file_path.check.n[number].txt 该文件存在覆盖不提醒。
+  - 最终 file_path.check.txt file_path.check.[number]d.txt 文件，列对齐，更加直观。

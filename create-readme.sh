@@ -16,7 +16,7 @@ generate_readme() {
 一些 shell 脚本
 EOF
 
-  directories=("install" "ops" "func" "macos" "other")
+  directories=("install" "ops" "cloud" "func" "macos" "other")
 
   for head_next in "${directories[@]}"; do
     [[ -d "$head_next" ]] || continue

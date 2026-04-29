@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 网宿 CDN 刷新脚本
+# 网宿 CDN 刷新
 
 username="$WS_USERNAME"
 apiKey="$WS_APIKEY"

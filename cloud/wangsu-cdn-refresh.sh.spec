@@ -1,4 +1,4 @@
-# 网宿 CDN 刷新脚本
+# 网宿 CDN 刷新
 
 [接口文档](https://apiexplorer.wangsu.com/apiexplorer/doc?productType=all_product&language=ZH_CN&apiId=4515&rsr=ws)
 

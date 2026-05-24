@@ -56,7 +56,6 @@ case "${1:-new}" in
     ditto "$C0" "$C1"
     ;;
   new)
-    rm -rf "$C1"
     mkdir -p "$C1"
     ;;
   *)

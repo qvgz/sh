@@ -65,4 +65,4 @@
 
 | 文件名 | 介绍 |
 | :- | :- |
-| [wechat2.sh](https://github.com/qvgz/sh/blob/master/other/wechat2.sh) | [macOS 微信双开](https://qvgz.org/sh/other/wechat2.sh) |
+| [wechat2.sh](https://github.com/qvgz/sh/blob/master/other/wechat2.sh) | [macOS 微信多开](https://qvgz.org/sh/other/wechat2.sh) |

@@ -20,7 +20,7 @@
 | [cleanup-run.sh](https://github.com/qvgz/sh/blob/master/ops/cleanup-run.sh) | [脚本停止/终端关闭时进程终止](https://qvgz.org/sh/ops/cleanup-run.sh) |
 | [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [Docker 镜像清理](https://qvgz.org/sh/ops/docker-image-clean.sh) |
 | [ip-conn-stat.sh](https://github.com/qvgz/sh/blob/master/ops/ip-conn-stat.sh) | [TCP 连接统计](https://qvgz.org/sh/ops/ip-conn-stat.sh) |
-| [nginx-log-rotate.sh](https://github.com/qvgz/sh/blob/master/ops/nginx-log-rotate.sh) | [Nginx 日志轮询切割](https://qvgz.org/sh/ops/nginx-log-rotate.sh) |
+| [log-clean.sh](https://github.com/qvgz/sh/blob/master/ops/log-clean.sh) | [日志清理备份](https://qvgz.org/sh/ops/log-clean.sh) |
 | [proc-watch-list.sh](https://github.com/qvgz/sh/blob/master/ops/proc-watch-list.sh) | [进程列表守护](https://qvgz.org/sh/ops/proc-watch-list.sh) |
 | [rdap.sh](https://github.com/qvgz/sh/blob/master/ops/rdap.sh) | [查询域名信息](https://qvgz.org/sh/ops/rdap.sh) |
 | [ssl-check.sh](https://github.com/qvgz/sh/blob/master/ops/ssl-check.sh) | [检测 SSL 证书信息](https://qvgz.org/sh/ops/ssl-check.sh) |

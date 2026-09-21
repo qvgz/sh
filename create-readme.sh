@@ -8,7 +8,7 @@ github="https://github.com/qvgz/sh/blob/master/"
 outfile="README.md"
 
 generate_readme() {
-  exclude_suffixes=(".spec")
+  exclude_suffixes=(".md")
 
   cat > "$outfile" <<'EOF'
 # cmd

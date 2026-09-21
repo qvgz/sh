@@ -16,10 +16,12 @@
 
 | 文件名 | 介绍 |
 | :- | :- |
+| [analyze-baseline.sh](https://github.com/qvgz/sh/blob/master/ops/analyze-baseline.sh) | [分析 CPU、内存、磁盘和网络性能](https://qvgz.org/sh/ops/analyze-baseline.sh) |
 | [centos-optimize.sh](https://github.com/qvgz/sh/blob/master/ops/centos-optimize.sh) | [CentOS/Alma/Rocky 9/10 容器云服务器优化](https://qvgz.org/sh/ops/centos-optimize.sh) |
 | [cleanup-run.sh](https://github.com/qvgz/sh/blob/master/ops/cleanup-run.sh) | [脚本停止/终端关闭时进程终止](https://qvgz.org/sh/ops/cleanup-run.sh) |
 | [docker-image-clean.sh](https://github.com/qvgz/sh/blob/master/ops/docker-image-clean.sh) | [Docker 镜像清理](https://qvgz.org/sh/ops/docker-image-clean.sh) |
 | [ip-conn-stat.sh](https://github.com/qvgz/sh/blob/master/ops/ip-conn-stat.sh) | [TCP 连接统计](https://qvgz.org/sh/ops/ip-conn-stat.sh) |
+| [linux-baseline.sh](https://github.com/qvgz/sh/blob/master/ops/linux-baseline.sh) | [采集 CPU、内存、磁盘、网络当前负载](https://qvgz.org/sh/ops/linux-baseline.sh) |
 | [log-clean.sh](https://github.com/qvgz/sh/blob/master/ops/log-clean.sh) | [日志清理备份](https://qvgz.org/sh/ops/log-clean.sh) |
 | [proc-watch-list.sh](https://github.com/qvgz/sh/blob/master/ops/proc-watch-list.sh) | [进程列表守护](https://qvgz.org/sh/ops/proc-watch-list.sh) |
 | [rdap.sh](https://github.com/qvgz/sh/blob/master/ops/rdap.sh) | [查询域名信息](https://qvgz.org/sh/ops/rdap.sh) |

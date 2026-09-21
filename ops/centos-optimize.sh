@@ -116,50 +116,101 @@ modprobe nf_conntrack || true
 # 文件：/etc/sysctl.d/99-el-container-cloud.conf
 cat > /etc/sysctl.d/99-el-container-cloud.conf <<'EOF'
 ################################################################
-# EL 9/10 container cloud sysctl baseline
-# 原则：仅保留容器主机必需项、低风险通用项，避免固定高内存/高连接数参数。
+# EL 9/10 container cloud sysctl baseline - 2026
+#
+# 目标：
+# - 企业生产环境
+# - rootful Docker/Podman bridge/NAT
+# - 安全、兼容、可预测
+# - 不进行无依据的内存/TCP/队列性能调优
 ################################################################
 
-############################
-# A) 网络并发（适度提高上限，兼顾默认应用场景）
-############################
-net.core.somaxconn = 16384            # 避免高并发 listen backlog 过小；保留适度上限，避免过度放大
-net.ipv4.tcp_max_syn_backlog = 16384  # 降低突发建连时半连接队列不足的概率
 
 ############################
-# B) TCP 稳定性与端口资源
+# A) TCP 基础安全
 ############################
-net.ipv4.ip_local_port_range = 10240 65535  # 提高出站短连接可用端口数，减少端口耗尽概率
-net.ipv4.tcp_syncookies = 1                # 缓解 SYN flood
-net.ipv4.tcp_mtu_probing = 1               # 缓解部分云网络 PMTU 黑洞
+
+# SYN flood / backlog overflow fallback。
+# Linux 当前默认即为 1，显式声明便于审计。
+net.ipv4.tcp_syncookies = 1
+
 
 ############################
-# C) 容器网络必需项
+# B) 容器 IPv4 转发
 ############################
-net.ipv4.ip_forward = 1                    # Docker/Podman bridge NAT 依赖
-net.bridge.bridge-nf-call-iptables = 1    # 让 bridge 流量进入 netfilter
+
+# rootful Docker/Podman bridge + NAT 需要 IPv4 forwarding。
+#
+# 注意：
+# 如果主机只运行 rootless Podman、host network，
+# 或明确不承担任何 L3 forwarding，应删除此项。
+#
+# 必须放在下面 IPv4 conf hardening 之前：
+# Linux 修改 ip_forward 时会把部分 IPv4 参数恢复到
+# host/router 对应的默认状态。
+net.ipv4.ip_forward = 1
+
 
 ############################
-# D) IPv6
+# C) IPv4 hardening
 ############################
-# 本脚本按 IPv4-only 容器云主机基线处理，默认关闭 IPv6。
-net.ipv6.conf.all.disable_ipv6 = 1
-net.ipv6.conf.default.disable_ipv6 = 1
+
+# 不接受 ICMP Redirect。
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+
+# 即使来自当前网关，也不接受所谓 secure redirect。
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+
+# 不发送 ICMP Redirect。
+# container host 虽然开启 forwarding，
+# 通常并不承担传统路由器的 redirect 功能。
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# 禁止 IPv4 source routing。
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# 不响应 broadcast/multicast ICMP Echo/Timestamp。
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# 忽略违反 RFC 的 bogus ICMP error response，
+# 同时避免此类消息污染日志。
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+
 
 ############################
-# E) 低风险网络 hardening
+# D) Reverse Path Filtering
 ############################
-net.ipv4.conf.all.accept_redirects = 0     # 优点：降低被重定向风险；代价：极小
-net.ipv4.conf.default.accept_redirects = 0 # 优点：同上；代价：极小
-net.ipv4.conf.all.send_redirects = 0       # 优点：避免充当路由重定向源；代价：极小
-net.ipv4.conf.default.send_redirects = 0   # 优点：同上；代价：极小
-net.ipv4.conf.all.accept_source_route = 0  # 优点：禁用源路由，减少攻击面；代价：极小
-net.ipv4.conf.default.accept_source_route = 0 # 优点：同上；代价：极小
-net.ipv4.icmp_ignore_bogus_error_responses = 1 # 优点：忽略异常 ICMP 错误响应；代价：极小
 
-# rp_filter：Docker/多网卡/overlay 环境建议用 loose(2)，避免误杀回程路径
-net.ipv4.conf.all.rp_filter = 2            # 优点：减少欺骗；代价：不如 strict(1) 严格，但更兼容容器网络
-net.ipv4.conf.default.rp_filter = 2        # 优点：同上；代价：同上
+# 0 = disabled
+# 1 = strict
+# 2 = loose
+#
+# 容器、overlay、VPN、多 NIC、policy routing、
+# asymmetric routing 环境统一使用 loose mode。
+#
+# 这是兼容性与反源地址欺骗之间的折中：
+# 仍验证源地址是否存在可达路径，但不强制回程必须走入接口。
+net.ipv4.conf.all.rp_filter = 2
+net.ipv4.conf.default.rp_filter = 2
+
+
+############################
+# E) IPv6 hardening
+############################
+
+# 企业通用基线不主动关闭 IPv6。
+# 即使当前业务 IPv4-only，也避免破坏未来 dual-stack、
+# 云厂商 IPv6、容器 IPv6 等能力。
+
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
 EOF
 
 # 仅加载本脚本写入的配置，避免受其他 sysctl 文件影响。
@@ -249,15 +300,7 @@ chronyc sources -n | awk '$1=="^*" {print}' || true
 echo -e "\n-- journald --"
 journalctl --disk-usage || true
 
-echo -e "\n-- sysctl --"
-sysctl net.core.somaxconn \
-       net.ipv4.tcp_max_syn_backlog \
-       net.ipv4.ip_local_port_range \
-       net.ipv4.ip_forward \
-       net.bridge.bridge-nf-call-iptables \
-       net.ipv6.conf.all.disable_ipv6 \
-       net.ipv4.conf.all.rp_filter \
-       || true
+# echo -e "\n-- sysctl --"
 
 echo -e "\n-- systemd 默认 nofile --"
 if [[ "$ENABLE_GLOBAL_LIMITS" -eq 1 ]]; then

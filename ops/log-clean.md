@@ -10,6 +10,7 @@
     - 创建备份目录 "$log_dir/backup/$(date -d "yesterday" +%Y%m%d)"
     - 使用 find 移动 "$log_dir/*.log" 到备份目录
     - run_cmd 存在执行
+    - 日志备份防覆盖
   - 清理日志：
     - 清理 "$log_dir/backup/"，保留 backup_day 天
     - 清理日志使用 ionice -c3

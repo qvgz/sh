@@ -27,12 +27,32 @@ fi
 
 mkdir -p "$backup_dir"
 
+move_log() {
+  local source="$1"
+  local file_name="${source##*/}"
+  local name="${file_name%.log}"
+  local target="$backup_dir/$file_name"
+  local sequence=0
+
+  while [[ -e "$source" ]]; do
+    while [[ -e "$target" || -L "$target" ]]; do
+      ((sequence += 1))
+      target="$backup_dir/$name.$sequence.log"
+    done
+
+    # -n also protects against another process creating target after the check.
+    mv -n -- "$source" "$target"
+  done
+}
+
 # 备份当前日志
-find "$log_dir" \
+while IFS= read -r -d '' log_file; do
+  move_log "$log_file"
+done < <(find "$log_dir" \
   -maxdepth 1 \
   -type f \
   -name '*.log' \
-  -exec mv -- {} "$backup_dir/" \;
+  -print0)
 
 if [[ -n "$run_cmd" ]]; then
   bash -c "$run_cmd"

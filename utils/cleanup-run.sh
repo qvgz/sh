@@ -3,7 +3,6 @@
 
 set -uo pipefail
 (( $# )) || { printf '用法：%s command [args ...]\n' "$0" >&2; exit 2; }
-command -v setsid >/dev/null || { printf '缺少命令：setsid（Linux util-linux）\n' >&2; exit 1; }
 pid=''
 cleanup() {
     local status=$?
@@ -23,8 +22,8 @@ trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
-# 关闭作业控制，确保 setsid 的进程不是已有进程组组长。
-set +m
-setsid -- "$@" &
+# 启用作业控制，让后台命令拥有独立进程组。
+set -m
+"$@" &
 pid=$!
 wait "$pid"

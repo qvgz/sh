@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 检测 SSL 证书信息
+# HTTPS/SSL/TLS 证书信息及到期时间
 
 set -euo pipefail
 
@@ -14,11 +14,11 @@ usage() {
 }
 
 query_cert() {
-  local domain="$1"
+  local domain=$1 certificate
   shift
-
-  echo | openssl s_client -servername "$domain" -connect "${domain}:443" 2>/dev/null \
-    | openssl x509 -noout "$@" 2>/dev/null
+  # 先完整接收输出，避免 x509 读完叶证书退出后使 s_client 收到 SIGPIPE。
+  certificate=$("$timeout_bin" -k 1 10 openssl s_client -servername "$domain" -connect "$domain:443" </dev/null 2>/dev/null) || return 1
+  openssl x509 -noout "$@" <<<"$certificate" 2>/dev/null
 }
 
 query_cert_text() {
@@ -71,160 +71,25 @@ enddate_from_summary() {
 }
 
 query_enddate() {
-  local domain="$1"
-  local summary date attempt
-
-  for attempt in 1 2 3; do
-    if summary="$(query_cert_summary "$domain")" && date="$(enddate_from_summary "$summary")"; then
-      printf '%s\n' "$date"
-      return 0
-    fi
-
-    [[ "$attempt" != "3" ]] && sleep "$query_interval"
-  done
-
-  return 1
+  local summary
+  summary=$(query_cert_summary "$1") || return 1
+  enddate_from_summary "$summary"
 }
 
 date_to_epoch() {
   local date_value="$1"
 
   date -d "$date_value" +%s 2>/dev/null && return 0
-  date -j -f "%Y-%m-%d" "$date_value" +%s 2>/dev/null
+  date -j -f "%Y-%m-%d %T" "$date_value 00:00:00" +%s 2>/dev/null
 }
 
 days_until() {
   local date_value="$1"
   local today_epoch date_epoch
 
-  today_epoch="$(TZ="$timezone" date_to_epoch "$(TZ="$timezone" date +%F)")" || return 1
-  date_epoch="$(TZ="$timezone" date_to_epoch "$date_value")" || return 1
+  today_epoch="$(TZ=UTC date_to_epoch "$(TZ="$timezone" date +%F)")" || return 1
+  date_epoch="$(TZ=UTC date_to_epoch "$date_value")" || return 1
   echo $(((date_epoch - today_epoch) / 86400))
-}
-
-cached_query_enddate() {
-  local cache_file="$1"
-  local domain="$2"
-  local cached
-
-  if [[ -n "$cache_file" && -f "$cache_file" ]] && cached="$(awk -F '\t' -v domain="$domain" '
-    $1 == domain { print $2; found = 1; exit }
-    END { if (!found) exit 1 }
-  ' "$cache_file")"; then
-    [[ "$cached" == "X" ]] && return 1
-    printf '%s\n' "$cached"
-    return 0
-  fi
-
-  if cached="$(query_enddate "$domain")"; then
-    [[ -n "$cache_file" ]] && printf '%s\t%s\n' "$domain" "$cached" >>"$cache_file"
-    printf '%s\n' "$cached"
-    return 0
-  fi
-
-  [[ -n "$cache_file" ]] && printf '%s\tX\n' "$domain" >>"$cache_file"
-  return 1
-}
-
-resolve_file_path() {
-  local requested="${1:-}"
-
-  if [[ -n "$requested" && -f "$requested" ]]; then
-    printf '%s\n' "$requested"
-    return 0
-  fi
-
-  if [[ -f "$default_file" ]]; then
-    printf '%s\n' "$default_file"
-    return 0
-  fi
-
-  if [[ -n "$requested" ]]; then
-    echo "Error: 文件不存在 ${requested}，且默认文件不存在 ${default_file}" >&2
-  else
-    echo "Error: 默认文件不存在 ${default_file}" >&2
-  fi
-  return 1
-}
-
-sort_check_file() {
-  local input_file="$1"
-  local output_file="$2"
-  local tmp
-
-  tmp="$(mktemp "${output_file}.sort.XXXXXX")"
-  awk '
-    $2 == "X" { print "0 0 " $0; next }
-    { printf "1 %012d %s\n", $3, $0 }
-  ' "$input_file" | sort -k1,1n -k2,2n | cut -d' ' -f3- >"$tmp"
-  format_check_file "$tmp" >"$output_file"
-  rm -f "$tmp"
-}
-
-format_check_file() {
-  awk '
-    {
-      domains[NR] = $1
-      dates[NR] = $2
-      days[NR] = $3
-      if (length($1) > domain_width) domain_width = length($1)
-      if (length($2) > date_width) date_width = length($2)
-    }
-
-    END {
-      for (i = 1; i <= NR; i++) {
-        if (days[i] == "") {
-          printf "%-*s  %s\n", domain_width, domains[i], dates[i]
-        } else {
-          printf "%-*s  %-*s  %s\n", domain_width, domains[i], date_width, dates[i], days[i]
-        }
-      }
-    }
-  ' "$1"
-}
-
-write_check_file() {
-  local file_path="$1"
-  local cache_file="$2"
-  local output_file="${file_path}.check.txt"
-  local tmp domain enddate left_days
-
-  tmp="$(mktemp "${output_file}.tmp.XXXXXX")"
-
-  while read -r domain _ || [[ -n "${domain:-}" ]]; do
-    [[ -z "${domain:-}" ]] && continue
-
-    if enddate="$(cached_query_enddate "$cache_file" "$domain")" && left_days="$(days_until "$enddate")"; then
-      printf '%s %s %s\n' "$domain" "$enddate" "$left_days" >>"$tmp"
-    else
-      printf '%s X\n' "$domain" >>"$tmp"
-    fi
-  done <"$file_path"
-
-  sort_check_file "$tmp" "$output_file"
-  rm -f "$tmp"
-}
-
-write_due_file() {
-  local check_file="$1"
-  local days_limit="$2"
-  local output_file="${check_file%.txt}.${days_limit}d.txt"
-  local tmp domain enddate left_days
-
-  tmp="$(mktemp "${output_file}.tmp.XXXXXX")"
-
-  while read -r domain enddate left_days _ || [[ -n "${domain:-}" ]]; do
-    [[ -z "${domain:-}" ]] && continue
-
-    if [[ "$enddate" == "X" ]]; then
-      printf '%s X\n' "$domain" >>"$tmp"
-    elif [[ "$left_days" =~ ^-?[0-9]+$ ]] && ((left_days <= days_limit)); then
-      printf '%s %s %s\n' "$domain" "$enddate" "$left_days" >>"$tmp"
-    fi
-  done <"$check_file"
-
-  sort_check_file "$tmp" "$output_file"
-  rm -f "$tmp"
 }
 
 print_domain() {
@@ -238,71 +103,107 @@ print_domain() {
   fi
 }
 
-main() {
-  local verbose=0
-  local file_mode=0
-  local due_mode=0
-  local file_path=""
-  local due_days=30
-  local query_cache=""
-  local check_file
+normalize_domain() {
+  local domain=${1%.}
+  [[ ${#domain} -le 253 && $domain != -* && $domain != .* && $domain != *..* &&
+     $domain =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || return 1
+  printf '%s\n' "$domain"
+}
+lookup_date() { query_enddate "$1"; }
+check_runtime() {
+  command -v openssl >/dev/null || { printf '缺少命令：openssl\n' >&2; return 1; }
+  timeout_bin=$(command -v timeout || command -v gtimeout || true)
+  [[ -n $timeout_bin ]] || { printf '需要 timeout 或 gtimeout（coreutils）\n' >&2; return 1; }
+}
 
-  while (($# > 0)); do
+resolve_file_path() {
+  local requested=$1
+  [[ -n $requested ]] || requested=$default_file
+  [[ -f $requested && -r $requested ]] || { printf '清单不可读：%s\n' "$requested" >&2; return 1; }
+  printf '%s\n' "$requested"
+}
+
+# 每次运行缓存成功和失败结果；报告用同目录临时文件替换。
+write_check_file() {
+  local file=$1 output=$1.check.txt domain value days query_domain
+  local rows=$work/rows stage
+  : >"$rows"
+  while read -r domain _ || [[ -n $domain ]]; do
+    domain=${domain%$'\r'}
+    [[ -n $domain && $domain != \#* ]] || continue
+    query_domain=$(normalize_domain "$domain") || {
+      printf '%s X\n' "$domain" >>"$rows"; RESULT=1; continue
+    }
+    if [[ ! -f $work/cache/$query_domain ]]; then
+      if value=$(lookup_date "$query_domain") && [[ -n $value ]]; then
+        printf '%s\n' "$value" >"$work/cache/$query_domain"
+      else
+        printf 'X\n' >"$work/cache/$query_domain"
+      fi
+      sleep "$query_interval"
+    fi
+    value=$(cat "$work/cache/$query_domain")
+    if [[ $value != X ]] && days=$(days_until "$value"); then
+      printf '%s %s %s\n' "$domain" "$value" "$days" >>"$rows"
+    else
+      printf '%s X\n' "$domain" >>"$rows"; RESULT=1
+    fi
+  done <"$file"
+  stage=$(mktemp "${output}.XXXXXX")
+  # 保留排序中间文件于 work，失败时不覆盖旧报告。
+  awk '{print ($2=="X" ? "0 0 " : "1 " $3 " ") $0}' "$rows" |
+    sort -k1,1n -k2,2n | cut -d' ' -f3- >"$work/sorted"
+  if format_rows "$work/sorted" >"$stage" && mv -f -- "$stage" "$output"; then :; else
+    rm -f -- "$stage"; return 1
+  fi
+  printf '报告：%s\n' "$output"
+}
+
+format_rows() {
+  awk '{d[NR]=$1;e[NR]=$2;n[NR]=$3;if(length($1)>w)w=length($1)}
+    END{for(i=1;i<=NR;i++)printf "%-*s  %-10s  %s\n",w,d[i],e[i],n[i]}' "$1"
+}
+
+main() {
+  local verbose=0 file_mode=0 due_mode=0 requested='' due_days=30 file stage
+  RESULT=0
+  while (( $# )); do
     case "$1" in
-      -v)
-        verbose=1
-        shift
-        ;;
-      -f)
-        file_mode=1
-        shift
-        if (($# > 0)) && [[ "$1" != -* ]]; then
-          file_path="$1"
-          shift
-        fi
-        ;;
-      -d)
-        due_mode=1
-        shift
-        if (($# > 0)) && [[ "$1" =~ ^[0-9]+$ ]]; then
-          due_days="$1"
-          shift
-        fi
-        ;;
-      -h|--help)
-        usage
-        return 0
-        ;;
-      -*)
-        usage
-        return 1
-        ;;
-      *)
-        break
-        ;;
+      -v) verbose=1; shift ;;
+      -f) file_mode=1; shift
+          if (( $# )) && [[ $1 != -* ]]; then requested=$1; shift; fi ;;
+      -d) due_mode=1; shift
+          if (( $# )) && [[ $1 =~ ^[0-9]+$ ]]; then due_days=$1; shift; fi ;;
+      -h|--help) usage; return 0 ;;
+      -*) usage; return 2 ;;
+      *) break ;;
     esac
   done
-
-  if [[ "$file_mode" == "1" || "$due_mode" == "1" ]]; then
-    file_path="$(resolve_file_path "$file_path")" || return 1
-    check_file="${file_path}.check.txt"
-    query_cache="$(mktemp "${TMPDIR:-/tmp}/ssl-check-cache.XXXXXX")"
-    write_check_file "$file_path" "$query_cache"
-
-    if [[ "$due_mode" == "1" ]]; then
-      write_due_file "$check_file" "$due_days"
+  [[ $query_interval =~ ^[0-9]+([.][0-9]+)?$ ]] || { printf '查询间隔无效\n' >&2; return 2; }
+  [[ $due_days =~ ^(0|[1-9][0-9]*)$ && ${#due_days} -le 6 ]] || return 2
+  check_runtime
+  work=$(mktemp -d "${TMPDIR:-/tmp}/domain-query.XXXXXX")
+  trap 'rm -rf -- "$work"' EXIT
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  mkdir "$work/cache"
+  if (( file_mode || due_mode )); then
+    (( $# == 0 )) || { usage; return 2; }
+    file=$(resolve_file_path "$requested")
+    write_check_file "$file"
+    if (( due_mode )); then
+      stage=$(mktemp "${file}.check.${due_days}d.txt.XXXXXX")
+      if awk -v days="$due_days" '$2=="X" || (NF>=3 && $3<=days)' "$file.check.txt" >"$stage" &&
+        mv -f -- "$stage" "$file.check.${due_days}d.txt"; then :; else
+        rm -f -- "$stage"; return 1
+      fi
+      printf '到期清单：%s\n' "$file.check.${due_days}d.txt"
     fi
-
-    rm -f "$query_cache"
-    return
+    return "$RESULT"
   fi
-
-  if (($# != 1)); then
-    usage
-    return 1
-  fi
-
-  print_domain "$verbose" "$1"
+  (( $# == 1 )) || { usage; return 2; }
+  domain=$(normalize_domain "$1") || { printf '域名无效：%s\n' "$1" >&2; return 2; }
+  print_domain "$verbose" "$domain"
 }
 
 main "$@"

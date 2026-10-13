@@ -1,15 +1,5 @@
 #!/usr/bin/env bash
 # 分析 CPU、内存、磁盘和网络性能
-# 功能：主动测试 Linux 服务器 CPU、内存、磁盘和网络性能；各轮原始结果按
-#       类别写入同一个文本，最后输出适合容量规划的保守稳定性能值。
-# 实现：CPU/内存使用 sysbench，磁盘使用 fio，网络使用 iperf3。默认测试
-#       5 轮；吞吐/IOPS 取第 25 百分位，延迟/重传取第 75 百分位，不取峰值。
-#       这会排除偶发的最好成绩，同时避免一次异常抖动直接代表服务器能力。
-# 使用：在另一台机器执行 `iperf3 -s`，然后在被测机执行：
-#       chmod +x analyze_baseline.sh
-#       ./analyze_baseline.sh --iperf-server 192.0.2.10 --disk-dir /data/test
-#       可选：--trials 5 --time 15 --disk-size 1G --output performance.txt
-# 注意：本脚本会制造高负载；不要直接在繁忙生产服务器上运行。
 
 set -euo pipefail
 export LC_ALL=C
@@ -49,14 +39,15 @@ while (($#)); do
 done
 
 [[ -n $IPERF_SERVER ]] || die "必须用 --iperf-server 指定另一台 iperf3 服务器"
-[[ $TRIALS =~ ^[0-9]+$ && $TRIALS -ge 3 ]] || die "trials 必须是至少 3 的整数"
+[[ $TRIALS =~ ^[1-9][0-9]*$ && ${#TRIALS} -le 6 && $TRIALS -ge 3 ]] || die "trials 必须是至少 3 的整数"
 [[ $TEST_TIME =~ ^[1-9][0-9]*$ ]] || die "time 必须是正整数"
-[[ $IPERF_PORT =~ ^[1-9][0-9]*$ && $IPERF_PORT -le 65535 ]] || die "iperf-port 无效"
+[[ $IPERF_PORT =~ ^[1-9][0-9]*$ && ${#IPERF_PORT} -le 5 && $IPERF_PORT -le 65535 ]] || die "iperf-port 无效"
+[[ $(uname -s) == Linux ]] || die "需要 Linux"
+[[ $DISK_SIZE =~ ^[1-9][0-9]*[kKmMgGtT]?$ ]] || die "disk-size 无效"
 for cmd in sysbench fio iperf3 jq awk sort getconf; do need "$cmd"; done
 [[ -d $DISK_DIR && -w $DISK_DIR ]] || die "磁盘目录不存在或不可写: $DISK_DIR"
 
 TMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/linux-performance.XXXXXX") || die "无法创建临时目录"
-TEST_FILE="$DISK_DIR/.linux-performance-fio.$$"
 cleanup() {
     [[ -n ${TEST_FILE:-} && -f $TEST_FILE ]] && rm -f -- "$TEST_FILE"
     [[ -n ${TMP_DIR:-} && -d $TMP_DIR ]] && rm -rf -- "$TMP_DIR"
@@ -64,8 +55,9 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+TEST_FILE=$(mktemp "$DISK_DIR/.linux-performance-fio.XXXXXX")
 mkdir -p "$(dirname -- "$OUTPUT")" || die "无法创建输出目录"
-: >"$OUTPUT" || die "无法写入: $OUTPUT"
+(set -o noclobber; : >"$OUTPUT") || die "报告已存在或无法创建: $OUTPUT"
 
 log() { printf '[%s] %s\n' "$(date '+%F %T')" "$*" >&2; }
 heading() { printf '\n===== %s =====\n' "$1" >>"$OUTPUT"; }
@@ -74,7 +66,7 @@ percentile() {
     count=$(awk 'NF{n++}END{print n+0}' "$file")
     ((count>0)) || { printf 'N/A'; return; }
     rank=$(((count*pct+99)/100))
-    sort -n "$file" | awk -v n="$rank" 'NR==n{print;exit}'
+    sort -n "$file" | awk -v n="$rank" 'NR==n{print}'
 }
 
 cpu_test() {
@@ -115,6 +107,7 @@ fio_one() {
             --iodepth=32 --numjobs=1 --direct=1 --ioengine=libaio --time_based=1 --runtime="$TEST_TIME" \
             --group_reporting=1 --output-format=json >"$raw" 2>&1; then
             printf '\n--- Disk %s 第 %d/%d 轮 ---\n' "$mode" "$i" "$TRIALS" >>"$OUTPUT"; cat "$raw" >>"$OUTPUT"
+            jq -e 'all(.jobs[]; .error == 0)' "$raw" >/dev/null || die "fio job 失败"
             jq -er ".jobs[0].$key.iops" "$raw" >>"$mi" || die "无法解析 fio IOPS"
             jq -er ".jobs[0].$key.bw_bytes/1048576" "$raw" >>"$mb" || die "无法解析 fio 带宽"
             jq -er ".jobs[0].$key.clat_ns.percentile[\"99.000000\"]/1000000" "$raw" >>"$ml" || die "无法解析 fio P99 延迟"

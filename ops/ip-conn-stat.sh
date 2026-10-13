@@ -1,51 +1,36 @@
 #!/usr/bin/env bash
-# TCP 连接统计
-# 1) 远端公网 IPv4 来访连接数（按 RemoteIP=peer 聚合）
-# 2) 本机公网 IPv4 发起/维持连接数（按 LocalIP=local 聚合）
-# 依赖：iproute2 (ss), awk, sort
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/ip-conn-stat.sh)"
-# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/ip-conn-stat.sh)"
+# 按本地/远端地址统计已建立 TCP IPv4 连接
 
 set -euo pipefail
-
 for bin in ss awk sort mktemp; do
-  command -v "$bin" >/dev/null 2>&1 || { echo "Error: missing command: $bin" >&2; exit 1; }
+    command -v "$bin" >/dev/null || { printf '缺少命令：%s\n' "$bin" >&2; exit 1; }
 done
-
-# 排除非公网/保留地址（按常用范围）
-NONPUBLIC_RE='^(10[.]|127[.]|169[.]254[.]|192[.]168[.]|172[.](1[6-9]|2[0-9]|3[0-1])[.]|100[.](6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])[.]|198[.](18|19)[.])'
-
-tmp_in="$(mktemp)"
-tmp_out="$(mktemp)"
-trap 'rm -f "$tmp_in" "$tmp_out"' EXIT
-
-ss -Hnt state established \
-| awk -v re="$NONPUBLIC_RE" -v tin="$tmp_in" -v tout="$tmp_out" '
-  function is_public_ipv4(ip) { return (ip !~ re) }
-  {
-    local_addr=$4
-    peer_addr=$5
-
-    # Local IP（本机）
-    if (match(local_addr, /^([0-9]+[.][0-9]+[.][0-9]+[.][0-9]+):[0-9]+$/, m1)) {
-      lip=m1[1]
-      if (is_public_ipv4(lip)) out_cnt[lip]++
+tmp=$(mktemp -d)
+trap 'rm -rf -- "$tmp"' EXIT
+: >"$tmp/peer"; : >"$tmp/local"
+# 指定 state 后 ss 不输出 State 列，地址在第 3、4 列。
+ss -Hnt4 state established | awk -v dir="$tmp" '
+    function public(ip, a) {
+        if (ip !~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$/) return 0
+        split(ip,a,".")
+        if (a[1]==0 || a[1]==10 || a[1]==127 || a[1]>=224) return 0
+        if (a[1]==100 && a[2]>=64 && a[2]<=127) return 0
+        if (a[1]==169 && a[2]==254) return 0
+        if (a[1]==172 && a[2]>=16 && a[2]<=31) return 0
+        if (a[1]==192 && (a[2]==168 || (a[2]==0 && (a[3]==0 || a[3]==2)))) return 0
+        if (a[1]==198 && (a[2]==18 || a[2]==19 || (a[2]==51 && a[3]==100))) return 0
+        if (a[1]==203 && a[2]==0 && a[3]==113) return 0
+        return 1
     }
-
-    # Peer IP（远端）
-    if (match(peer_addr, /^([0-9]+[.][0-9]+[.][0-9]+[.][0-9]+):[0-9]+$/, m2)) {
-      rip=m2[1]
-      if (is_public_ipv4(rip)) in_cnt[rip]++
+    {local_ip=$3; peer_ip=$4; sub(/:[0-9]+$/,"",local_ip); sub(/:[0-9]+$/,"",peer_ip)
+     if (public(local_ip)) local_count[local_ip]++
+     if (public(peer_ip)) peer_count[peer_ip]++}
+    END {
+        for (ip in peer_count) print peer_count[ip], ip > (dir "/peer")
+        for (ip in local_count) print local_count[ip], ip > (dir "/local")
     }
-  }
-  END {
-    for (ip in in_cnt)  printf "%d\t%s\n", in_cnt[ip], ip > tin
-    for (ip in out_cnt) printf "%d\t%s\n", out_cnt[ip], ip > tout
-  }
 '
-
-echo "=== 远端公网 IPv4 来访连接数（RemoteIP/peer，ESTAB）==="
-sort -nr "$tmp_in" || true
-echo
-echo "=== 本机公网 IPv4 发起/维持连接数（LocalIP/local，ESTAB）==="
-sort -nr "$tmp_out" || true
+printf '=== 远端公网 IPv4 连接数（peer，ESTABLISHED）===\n'
+sort -k1,1nr -k2,2 "$tmp/peer"
+printf '\n=== 本机公网 IPv4 连接数（local，ESTABLISHED）===\n'
+sort -k1,1nr -k2,2 "$tmp/local"

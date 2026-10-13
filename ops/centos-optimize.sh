@@ -1,51 +1,42 @@
 #!/usr/bin/env bash
-# CentOS/Alma/Rocky 9/10 容器云服务器优化
-# 包含：
-# - 基础组件：安装并启用 tuned、chrony
-# - 日志与内核：journald 持久化与限额、容器内核模块、sysctl（含关闭 IPv6）
-# - 系统访问基线：关闭 SELinux / firewalld、配置 sshd
-# - 可选项：
-#  --global-limits 配置全局 nofile nproc
-#  --timezone-shanghai 配置时区 Asia/Shanghai
-# - 验证：检查关键配置是否生效
-# bash -c "$(curl -fsSL https://raw.githubusercontent.com/qvgz/sh/master/ops/centos-optimize.sh)"
-# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/centos-optimize.sh)"
-# bash -c "$(curl -fsSL https://qvgz.org/sh/ops/centos-optimize.sh)" --timezone-shanghai --global-limits
+# EL 9/10 容器主机基线
+# 安全策略关闭需显式选项。
 
 set -euo pipefail
 
 ENABLE_TIMEZONE_SHANGHAI=0
 ENABLE_GLOBAL_LIMITS=0
+DISABLE_SELINUX=0
+DISABLE_FIREWALLD=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --timezone-shanghai)
       ENABLE_TIMEZONE_SHANGHAI=1
       ;;
+    --disable-selinux) DISABLE_SELINUX=1 ;;
+    --disable-firewalld) DISABLE_FIREWALLD=1 ;;
     --global-limits)
       ENABLE_GLOBAL_LIMITS=1
       ;;
     -h|--help)
-      echo "用法: $0 [--timezone-shanghai] [--global-limits]"
+      echo "用法: $0 [--timezone-shanghai] [--global-limits] [--disable-selinux] [--disable-firewalld]"
       exit 0
       ;;
     *)
       echo "[ERROR] 不支持的参数: $1" >&2
-      echo "用法: $0 [--timezone-shanghai] [--global-limits]" >&2
+      echo "用法: $0 [--timezone-shanghai] [--global-limits] [--disable-selinux] [--disable-firewalld]" >&2
       exit 1
       ;;
   esac
   shift
 done
 
-# -------------------------
-# 环境检查：只支持 CentOS/Alma/Rocky 9/10
-# -------------------------
 # shellcheck disable=SC1091
 . /etc/os-release
 distro_id="${ID:-}"
 distro_name="${NAME:-}"
-distro_major="$(echo "${VERSION_ID:-}" | awk -F'.' '{print $1}')"
+distro_major=${VERSION_ID%%.*}
 case "$distro_id:$distro_major" in
   centos:9|centos:10|almalinux:9|almalinux:10|rocky:9|rocky:10)
     ;;
@@ -55,156 +46,77 @@ case "$distro_id:$distro_major" in
     ;;
 esac
 
-# -------------------------
-# 环境检查：必须 root
-# -------------------------
 if [[ "${EUID}" -ne 0 ]]; then
   echo "[ERROR] 必须以 root 运行" >&2
   exit 1
 fi
 
-echo "== CentOS/Alma/Rocky 9/10 Container Cloud Baseline =="
+for bin in dnf systemctl modprobe sysctl sshd; do
+  command -v "$bin" >/dev/null || { printf '缺少命令：%s\n' "$bin" >&2; exit 1; }
+done
+if (( DISABLE_SELINUX )); then
+  command -v getenforce >/dev/null && command -v setenforce >/dev/null
+fi
+sshd -t
+backup=$(mktemp -d /var/tmp/el-container-backup.XXXXXX)
+for file in /etc/systemd/journald.conf.d/10-el-container-cloud.conf /etc/modules-load.d/10-el-container-cloud.conf /etc/sysctl.d/99-el-container-cloud.conf /etc/sysctl.d/10-el-global-limits.conf /etc/systemd/system.conf.d/10-el-global-limits.conf /etc/security/limits.d/10-el-global-limits.conf /etc/selinux/config /etc/ssh/sshd_config.d/90-enterprise.conf; do
+  [[ ! -e $file ]] || cp -a --parents -- "$file" "$backup"
+done
+sysctl -a 2>/dev/null >"$backup/sysctl.before" || true
+systemctl is-enabled firewalld >"$backup/firewalld.enabled" 2>/dev/null || true
+systemctl is-active firewalld >"$backup/firewalld.active" 2>/dev/null || true
+tuned-adm active >"$backup/tuned.before" 2>/dev/null || true
+timedatectl show -p Timezone --value >"$backup/timezone.before"
+printf '原配置和状态备份：%s\n' "$backup"
 
-# -------------------------
-# 基础组件：tuned（云虚拟机基线）
-# -------------------------
-dnf install -y tuned
+dnf install -y tuned chrony
 systemctl enable --now tuned
 tuned-adm profile virtual-guest
 
-# -------------------------
-# 基础组件：chrony 时间同步
-# -------------------------
-dnf install -y chrony
 systemctl enable --now chronyd
 
-# -------------------------
-# 日志与内核：journald 持久化与限额
-# -------------------------
-# 云主机保留重启前日志更利于排障，同时限制占用避免打满系统盘。
 mkdir -p /etc/systemd/journald.conf.d
 mkdir -p /var/log/journal
 cat > /etc/systemd/journald.conf.d/10-el-container-cloud.conf <<'EOF'
 [Journal]
-# 容器云主机默认保留持久日志，便于重启后排障。
 Storage=persistent
-# 控制磁盘占用，避免日志无限增长挤压系统盘。
 SystemMaxUse=1G
-# 运行时 journal（/run/log/journal）上限
 RuntimeMaxUse=256M
 EOF
 systemctl restart systemd-journald
 
-# -------------------------
-# 日志与内核：容器内核模块
-# -------------------------
-# br_netfilter：bridge 流量进入 netfilter（iptables/nft 才能管得到）
-# nf_conntrack：连接跟踪（Docker NAT/端口映射依赖）
-# overlay：容器镜像/容器层常用联合挂载驱动
 cat > /etc/modules-load.d/10-el-container-cloud.conf <<'EOF'
 overlay
 br_netfilter
 nf_conntrack
 EOF
-modprobe overlay || true
-modprobe br_netfilter || true
-modprobe nf_conntrack || true
+modprobe overlay
+modprobe br_netfilter
+modprobe nf_conntrack
 
-# -------------------------
-# 日志与内核：sysctl
-# -------------------------
-# 文件：/etc/sysctl.d/99-el-container-cloud.conf
 cat > /etc/sysctl.d/99-el-container-cloud.conf <<'EOF'
-################################################################
-# EL 9/10 container cloud sysctl baseline - 2026
-#
-# 目标：
-# - 企业生产环境
-# - rootful Docker/Podman bridge/NAT
-# - 安全、兼容、可预测
-# - 不进行无依据的内存/TCP/队列性能调优
-################################################################
-
-
-############################
-# A) TCP 基础安全
-############################
-
-# SYN flood / backlog overflow fallback。
-# Linux 当前默认即为 1，显式声明便于审计。
 net.ipv4.tcp_syncookies = 1
 
-
-############################
-# B) 容器 IPv4 转发
-############################
-
-# rootful Docker/Podman bridge + NAT 需要 IPv4 forwarding。
-#
-# 注意：
-# 如果主机只运行 rootless Podman、host network，
-# 或明确不承担任何 L3 forwarding，应删除此项。
-#
-# 必须放在下面 IPv4 conf hardening 之前：
-# Linux 修改 ip_forward 时会把部分 IPv4 参数恢复到
-# host/router 对应的默认状态。
 net.ipv4.ip_forward = 1
 
-
-############################
-# C) IPv4 hardening
-############################
-
-# 不接受 ICMP Redirect。
 net.ipv4.conf.all.accept_redirects = 0
 net.ipv4.conf.default.accept_redirects = 0
 
-# 即使来自当前网关，也不接受所谓 secure redirect。
 net.ipv4.conf.all.secure_redirects = 0
 net.ipv4.conf.default.secure_redirects = 0
 
-# 不发送 ICMP Redirect。
-# container host 虽然开启 forwarding，
-# 通常并不承担传统路由器的 redirect 功能。
 net.ipv4.conf.all.send_redirects = 0
 net.ipv4.conf.default.send_redirects = 0
 
-# 禁止 IPv4 source routing。
 net.ipv4.conf.all.accept_source_route = 0
 net.ipv4.conf.default.accept_source_route = 0
 
-# 不响应 broadcast/multicast ICMP Echo/Timestamp。
 net.ipv4.icmp_echo_ignore_broadcasts = 1
 
-# 忽略违反 RFC 的 bogus ICMP error response，
-# 同时避免此类消息污染日志。
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 
-
-############################
-# D) Reverse Path Filtering
-############################
-
-# 0 = disabled
-# 1 = strict
-# 2 = loose
-#
-# 容器、overlay、VPN、多 NIC、policy routing、
-# asymmetric routing 环境统一使用 loose mode。
-#
-# 这是兼容性与反源地址欺骗之间的折中：
-# 仍验证源地址是否存在可达路径，但不强制回程必须走入接口。
 net.ipv4.conf.all.rp_filter = 2
 net.ipv4.conf.default.rp_filter = 2
-
-
-############################
-# E) IPv6 hardening
-############################
-
-# 企业通用基线不主动关闭 IPv6。
-# 即使当前业务 IPv4-only，也避免破坏未来 dual-stack、
-# 云厂商 IPv6、容器 IPv6 等能力。
 
 net.ipv6.conf.all.accept_redirects = 0
 net.ipv6.conf.default.accept_redirects = 0
@@ -213,31 +125,24 @@ net.ipv6.conf.all.accept_source_route = 0
 net.ipv6.conf.default.accept_source_route = 0
 EOF
 
-# 仅加载本脚本写入的配置，避免受其他 sysctl 文件影响。
 sysctl -q --load /etc/sysctl.d/99-el-container-cloud.conf
 
-# -------------------------
-# 可选项：配置全局 nofile nproc
-# -------------------------
 conf_global_nofile_nproc(){
-  # 将系统级 FD 上限与本脚本的全局 limits 选项绑定，避免默认改动进程资源上限。
   cat > /etc/sysctl.d/10-el-global-limits.conf <<'EOF'
 fs.file-max = 2097152
 fs.nr_open = 2097152
 EOF
   sysctl -q --load /etc/sysctl.d/10-el-global-limits.conf
 
-  # systemd nofile nproc
   mkdir -p /etc/systemd/system.conf.d
   cat > /etc/systemd/system.conf.d/10-el-global-limits.conf <<'EOF'
 [Manager]
 DefaultLimitNOFILE=1048576
 DefaultLimitNPROC=65535
-TasksMax=infinity
+DefaultTasksMax=infinity
 EOF
   systemctl daemon-reexec
 
-  # 终端进程 nofile nproc
   mkdir -p /etc/security/limits.d/
   cat > /etc/security/limits.d/10-el-global-limits.conf <<'EOF'
 * soft nofile 1048576
@@ -251,12 +156,8 @@ if [[ "$ENABLE_GLOBAL_LIMITS" -eq 1 ]]; then
   conf_global_nofile_nproc
 fi
 
-# -------------------------
-# 系统访问基线：关闭 SELinux / firewalld
-# -------------------------
-# SELinux
-setenforce 0 || true
-# 统一覆盖 SELINUX 当前状态，避免 permissive 时未持久关闭。
+if (( DISABLE_SELINUX )); then
+if [[ $(getenforce) != Disabled ]]; then setenforce 0; fi
 if [[ -f /etc/selinux/config ]]; then
   if grep -qE '^[[:space:]]*SELINUX=' /etc/selinux/config; then
     sed -ri 's/^[[:space:]]*SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
@@ -264,30 +165,22 @@ if [[ -f /etc/selinux/config ]]; then
     printf '\nSELINUX=disabled\n' >> /etc/selinux/config
   fi
 fi
-# firewalld
-systemctl disable --now firewalld || true
+fi
+if (( DISABLE_FIREWALLD )); then systemctl disable --now firewalld; fi
 
-# -------------------------
-# 系统访问基线：sshd
-# -------------------------
 mkdir -p /etc/ssh/sshd_config.d
 cat > /etc/ssh/sshd_config.d/90-enterprise.conf <<'EOF'
 KbdInteractiveAuthentication no
 GSSAPIAuthentication no
 UseDNS no
 EOF
-sshd -t && systemctl reload sshd || true
+sshd -t
+systemctl reload sshd
 
-# -------------------------
-# 可选项：时区 Asia/Shanghai
-# -------------------------
 if [[ "$ENABLE_TIMEZONE_SHANGHAI" -eq 1 ]]; then
-  timedatectl set-timezone Asia/Shanghai || true
+  timedatectl set-timezone Asia/Shanghai
 fi
 
-# -------------------------
-# 验证
-# -------------------------
 echo "== 验证 =="
 echo -e "\n-- tuned --"
 systemctl is-active tuned >/dev/null 2>&1 && echo "tuned: active" || echo "tuned: not active"
@@ -299,8 +192,6 @@ chronyc sources -n | awk '$1=="^*" {print}' || true
 
 echo -e "\n-- journald --"
 journalctl --disk-usage || true
-
-# echo -e "\n-- sysctl --"
 
 echo -e "\n-- systemd 默认 nofile --"
 if [[ "$ENABLE_GLOBAL_LIMITS" -eq 1 ]]; then

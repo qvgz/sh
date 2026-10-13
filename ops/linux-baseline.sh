@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 # 采集 CPU、内存、磁盘、网络当前负载
-# 功能：依次采集 Linux 当前 CPU、内存、磁盘、网络负载；每类默认采集 25 秒。
-#       所有逐秒原始数据按类别写入同一个文本，末尾给出各项峰值。
-# 实现：读取 /proc/stat、/proc/meminfo、/proc/diskstats 和 /proc/net/dev，使用
-#       相邻快照差值计算速率和利用率；采集过程不会主动制造测试负载。
-# 使用：chmod +x linux_baseline.sh
-#       ./linux_baseline.sh [--duration 25] [--output current_load.txt]
-#       --duration 是每一类的采集秒数，总耗时约为其 4 倍。
 
 set -euo pipefail
 export LC_ALL=C
@@ -39,11 +32,11 @@ trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$(dirname -- "$OUTPUT")" || die "无法创建输出目录"
-: >"$OUTPUT" || die "无法写入: $OUTPUT"
+(set -o noclobber; : >"$OUTPUT") || die "报告已存在或无法创建: $OUTPUT"
 
 section() { printf '\n===== %s =====\n' "$1" | tee -a "$OUTPUT"; }
 progress() { printf '[%s] %s（%ss）\n' "$(date '+%F %T')" "$1" "$DURATION" >&2; }
-cpu_snapshot() { awk '/^cpu / {for(i=2;i<=NF;i++) t+=$i; print t, $5+$6}' /proc/stat; }
+cpu_snapshot() { awk '/^cpu / {for(i=2;i<=9 && i<=NF;i++) t+=$i; printf "%.0f %.0f\n",t,$5+$6}' /proc/stat; }
 
 collect_cpu() {
     local file="$TMP_DIR/cpu" prev idle total current_idle dtotal didle used i
@@ -85,37 +78,42 @@ disk_snapshot() {
     done </proc/diskstats
 }
 
-collect_disk() {
-    local file="$TMP_DIR/disk" before="$TMP_DIR/disk.before" after="$TMP_DIR/disk.after" i
-    progress "采集磁盘当前负载"
-    printf 'timestamp device read_MiB_s write_MiB_s read_IOPS write_IOPS util_pct\n' >"$file"
-    disk_snapshot >"$before"
-    for ((i=0; i<DURATION; i++)); do
-        sleep 1; disk_snapshot >"$after"
-        awk -v ts="$(date '+%F_%T')" 'NR==FNR{r[$1]=$2;rs[$1]=$3;w[$1]=$4;ws[$1]=$5;io[$1]=$6;next}
-            ($1 in r){u=($6-io[$1])/10;if(u>100)u=100;if(u<0)u=0;
-            printf "%s %s %.2f %.2f %d %d %.2f\n",ts,$1,($3-rs[$1])/2048,($5-ws[$1])/2048,$2-r[$1],$4-w[$1],u}' \
-            "$before" "$after" >>"$file"
-        mv -- "$after" "$before"
-    done
-    section "磁盘原始数据"; cat "$file" >>"$OUTPUT"
-}
-
 network_snapshot() { awk -F'[: ]+' 'NR>2 {print $2,$3,$11}' /proc/net/dev; }
 
-collect_network() {
-    local file="$TMP_DIR/network" before="$TMP_DIR/net.before" after="$TMP_DIR/net.after" i
-    progress "采集网络当前负载"
-    printf 'timestamp interface rx_MiB_s tx_MiB_s total_MiB_s\n' >"$file"
-    network_snapshot >"$before"
+collect_rates() {
+    local kind=$1 file="$TMP_DIR/$1" before="$TMP_DIR/$1.before" after="$TMP_DIR/$1.after"
+    local i previous current elapsed
+    if [[ $kind == disk ]]; then
+        progress "采集磁盘当前负载"
+        printf 'timestamp device read_MiB_s write_MiB_s read_IOPS write_IOPS util_pct\n' >"$file"
+    else
+        progress "采集网络当前负载"
+        printf 'timestamp interface rx_MiB_s tx_MiB_s total_MiB_s\n' >"$file"
+    fi
+    "${kind}_snapshot" >"$before"
+    read -r previous _ </proc/uptime
     for ((i=0; i<DURATION; i++)); do
-        sleep 1; network_snapshot >"$after"
-        awk -v ts="$(date '+%F_%T')" 'NR==FNR{rx[$1]=$2;tx[$1]=$3;next}
-            ($1 in rx){r=($2-rx[$1])/1048576;t=($3-tx[$1])/1048576;
-            printf "%s %s %.3f %.3f %.3f\n",ts,$1,r,t,r+t}' "$before" "$after" >>"$file"
+        sleep 1
+        "${kind}_snapshot" >"$after"
+        read -r current _ </proc/uptime
+        elapsed=$(awk -v a="$previous" -v b="$current" 'BEGIN{print b-a}')
+        awk -v ts="$(date '+%F_%T')" -v kind="$kind" -v dt="$elapsed" '
+            FILENAME==ARGV[1] {for(i=2;i<=NF;i++) old[$1,i]=$i; seen[$1]=1;next}
+            ($1 in seen) && dt>0 {
+                for(i=2;i<=NF;i++) {d[i]=$i-old[$1,i]; if(d[i]<0) d[i]=0}
+                if(kind=="disk") {
+                    u=d[6]/(10*dt); if(u>100) u=100
+                    printf "%s %s %.2f %.2f %.2f %.2f %.2f\n",ts,$1,d[3]/2048/dt,d[5]/2048/dt,d[2]/dt,d[4]/dt,u
+                } else {
+                    r=d[2]/1048576/dt;t=d[3]/1048576/dt
+                    printf "%s %s %.3f %.3f %.3f\n",ts,$1,r,t,r+t
+                }
+            }
+        ' "$before" "$after" >>"$file"
         mv -- "$after" "$before"
+        previous=$current
     done
-    section "网络原始数据"; cat "$file" >>"$OUTPUT"
+    section "$kind 原始数据"; cat "$file" >>"$OUTPUT"
 }
 
 write_summary() {
@@ -133,8 +131,8 @@ printf 'Linux 当前负载采集报告\n主机: %s\n开始时间: %s\n每类采�
     "$(hostname)" "$(date '+%F %T %z')" "$DURATION" >>"$OUTPUT"
 collect_cpu
 collect_memory
-collect_disk
-collect_network
+collect_rates disk
+collect_rates network
 write_summary
 printf '\n结束时间: %s\n' "$(date '+%F %T %z')" >>"$OUTPUT"
 printf '采集完成：%s\n' "$OUTPUT"

@@ -1,99 +1,50 @@
 #!/usr/bin/env bash
 # 网宿 CDN 刷新
+# 一次提交，不自动重试结果不明的请求
 
-username="$WS_USERNAME"
-apiKey="$WS_APIKEY"
-date=$(env LANG="en_US.UTF-8" date -u "+%a, %d %b %Y %H:%M:%S GMT")
-password=$(printf "%s" "$date" | openssl dgst -sha1 -hmac "$apiKey" -binary | openssl enc -base64)
-
-if [ "$#" -eq 0 ]; then
-    echo "Usage: $0 <[urls=]url1 url2>" >&2
-    exit 1
+set -eo pipefail
+if (( $# == 0 )); then
+    printf '用法：WS_USERNAME=... WS_APIKEY=... bash %s [urls=]URL ...\n' "$0" >&2
+    exit 2
 fi
-
-json_escape() {
-    local value="$1"
-    value=${value//\\/\\\\}
-    value=${value//\"/\\\"}
-    printf "%s" "$value"
-}
-
-json_array() {
-    local first=1
-    local item
-
-    printf "["
-    for item in "$@"; do
-        if [ "$first" -eq 0 ]; then
-            printf ","
-        fi
-        first=0
-        printf '"%s"' "$(json_escape "$item")"
-    done
-    printf "]"
-}
-
-urls=()
-dirs=()
-
-args_text="$*"
-args_text=${args_text#urls=}
-
-while IFS= read -r item; do
-    [ -n "$item" ] || continue
-    if [[ "$item" == */ ]]; then
-        dirs+=("$item")
-    else
-        urls+=("$item")
-    fi
-done < <(printf "%s\n" "$args_text" | tr '[:space:]' '\n')
-
-if [ "${#urls[@]}" -eq 0 ] && [ "${#dirs[@]}" -eq 0 ]; then
-    echo "No URL provided" >&2
-    exit 1
-fi
-
-body="{"
-if [ "${#urls[@]}" -gt 0 ]; then
-    body+="\"urls\":$(json_array "${urls[@]}"),\"urlAction\":\"delete\""
-fi
-if [ "${#dirs[@]}" -gt 0 ]; then
-    if [ "${#urls[@]}" -gt 0 ]; then
-        body+=","
-    fi
-    body+="\"dirs\":$(json_array "${dirs[@]}"),\"dirAction\":\"expire\""
-fi
-body+="}"
-
-request() {
-    curl -s --url "https://open.chinanetcenter.com/ccm/purge/ItemIdReceiver" \
-        -X "POST" \
-        -u "$username:$password" \
-        -H "Date:$date" \
-        -H "Content-Type: application/json" \
-        --connect-timeout 10 \
-        --max-time 30 \
-        -d "$body"
-}
-
-response=$(request)
-status=$?
-
-if [ "$status" -eq 28 ]; then
-    response=$(request)
+[[ -n ${WS_USERNAME:-} && -n ${WS_APIKEY:-} ]] || { printf '缺少 WS_USERNAME 或 WS_APIKEY\n' >&2; exit 2; }
+for bin in curl openssl jq; do
+    command -v "$bin" >/dev/null || { printf '缺少命令：%s\n' "$bin" >&2; exit 1; }
+done
+urls=(); dirs=()
+# 兼容一段空白分隔的 urls= 参数；URL 内空格应预先编码。
+for arg in "$@"; do
+    arg=${arg#urls=}
+    while IFS= read -r item; do
+        [[ -n $item ]] || continue
+        [[ $item =~ ^https?://[^[:space:]]+$ ]] || { printf 'URL 无效：%s\n' "$item" >&2; exit 2; }
+        if [[ $item == */ ]]; then dirs+=("$item"); else urls+=("$item"); fi
+    done < <(printf '%s\n' "$arg" | tr '[:space:]' '\n')
+done
+(( ${#urls[@]} + ${#dirs[@]} )) || { printf 'URL 不能为空\n' >&2; exit 2; }
+url_json=$(jq -cn --args '$ARGS.positional' "${urls[@]}")
+dir_json=$(jq -cn --args '$ARGS.positional' "${dirs[@]}")
+body=$(jq -cn --argjson urls "$url_json" --argjson dirs "$dir_json" '
+    {} + (if ($urls|length)>0 then {urls:$urls,urlAction:"delete"} else {} end)
+       + (if ($dirs|length)>0 then {dirs:$dirs,dirAction:"expire"} else {} end)')
+request_date=$(LC_ALL=C date -u '+%a, %d %b %Y %H:%M:%S GMT')
+password=$(printf '%s' "$request_date" | openssl dgst -sha1 -hmac "$WS_APIKEY" -binary | openssl base64 -A)
+# 认证放入受限临时配置，避免 curl 命令行暴露用户名和签名。
+umask 077
+tmp=$(mktemp -d)
+trap 'rm -rf -- "$tmp"' EXIT
+credentials=${WS_USERNAME}:$password
+credentials=${credentials//\\/\\\\}
+credentials=${credentials//\"/\\\"}
+[[ $credentials != *$'\n'* && $credentials != *$'\r'* ]] || exit 2
+printf 'user = "%s"\n' "$credentials" >"$tmp/auth"
+if response=$(curl -fsS --config "$tmp/auth" --connect-timeout 10 --max-time 30 \
+    --url https://open.chinanetcenter.com/ccm/purge/ItemIdReceiver \
+    -H "Date: $request_date" -H 'Content-Type: application/json' --data-binary "$body"); then
+    printf '%s\n' "$response"
+    jq -e '.Code == 1' <<<"$response" >/dev/null
+else
     status=$?
-fi
-
-printf "%s\n" "$response"
-
-if [ "$status" -ne 0 ]; then
+    printf '提交失败（curl=%s），结果可能不明；先核实网宿刷新记录再决定是否重试。\n' "$status" >&2
     exit "$status"
 fi
-
-code=$(printf "%s" "$response" | sed -n 's/.*"Code"[[:space:]]*:[[:space:]]*\([0-9][0-9]*\).*/\1/p')
-
-if [ "$code" = "1" ]; then
-    exit 0
-fi
-
-exit 1

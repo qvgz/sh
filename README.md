@@ -32,6 +32,7 @@
 | [analyze-baseline.sh](https://qvgz.org/sh/ops/analyze-baseline.sh) | [分析 CPU、内存、磁盘和网络性能](ops/analyze-baseline.sh.md) |
 | [centos-7-kernel-lts.sh](https://qvgz.org/sh/ops/centos-7-kernel-lts.sh) | [CentOS 7 安装 kernel-lt](ops/centos-7-kernel-lts.sh.md) |
 | [centos-optimize.sh](https://qvgz.org/sh/ops/centos-optimize.sh) | [EL 9/10 容器主机基线](ops/centos-optimize.sh.md) |
+| [debian-rclocal.sh](https://qvgz.org/sh/ops/debian-rclocal.sh) | [Debian 启用 rc.local](ops/debian-rclocal.sh.md) |
 | [ip-conn-stat.sh](https://qvgz.org/sh/ops/ip-conn-stat.sh) | [按本地/远端地址统计已建立 TCP IPv4 连接](ops/ip-conn-stat.sh.md) |
 | [linux-baseline.sh](https://qvgz.org/sh/ops/linux-baseline.sh) | [采集 CPU、内存、磁盘、网络当前负载](ops/linux-baseline.sh.md) |
 | [log-clean.sh](https://qvgz.org/sh/ops/log-clean.sh) | [轮转目录顶层 .log 文件](ops/log-clean.sh.md) |

@@ -3,6 +3,8 @@
 # 解析器的输出仅有 PARSED_ARGV、PARSED_DISCARD 和 PARSE_ERROR。
 # 不使用 eval/bash -c，不执行任何 shell 展开。
 
+declare -A restart_failures=() restart_pending=()
+
 parse_entry() {
   local text=${1%$'\r'} quote='' word='' active=0 index char next suffix
   PARSED_ARGV=()
@@ -147,7 +149,7 @@ launch_process() {
 # 1=配置读取失败；2=守护日志失败；单条配置故障记录后继续。
 check_once() {
   local config=$1 log=$2 limit=$3 proc_root=$4
-  local line number=0 executable directory name output magic script key status
+  local line number=0 executable directory name output magic script key status exists failures
   local -a argv=()
   local -A seen=()
 
@@ -183,6 +185,24 @@ check_once() {
     script=0
     magic=''
     if IFS= read -r -N 2 magic <"${argv[0]}" && [[ "$magic" == '#!' ]]; then script=1; fi
+    exists=0
+    failures=${restart_failures[$key]:-0}
+    if process_exists "$proc_root" "$directory" "$script" "${argv[@]}"; then
+      exists=1
+      if (( failures > 0 )); then
+        log_event "$log" "进程已恢复，连续重启失败次数清零（原 $failures 次）：$line" || { exec 8<&-; return 2; }
+      fi
+      restart_failures[$key]=0
+      restart_pending[$key]=0
+    elif [[ "${restart_pending[$key]:-0}" == 1 ]]; then
+      failures=$((failures + 1))
+      restart_failures[$key]=$failures
+      restart_pending[$key]=0
+      log_event "$log" "重启失败（连续 $failures 次，下轮检查进程仍不存在）：$line" || { exec 8<&-; return 2; }
+      if (( failures >= 3 )); then
+        log_event "$log" "连续 3 次重启失败，停止尝试重启，继续检查恢复：$line" || { exec 8<&-; return 2; }
+      fi
+    fi
     output="${directory%/}/$name.log"
     if (( PARSED_DISCARD )); then
       output=/dev/null
@@ -195,12 +215,19 @@ check_once() {
         continue
       fi
     fi
-    if process_exists "$proc_root" "$directory" "$script" "${argv[@]}"; then continue; fi
+    if (( exists || failures >= 3 )); then continue; fi
     status=0
     launch_process "$directory" "$output" "$log" "第 $number 行 $line" "${argv[@]}" || status=$?
     if (( status == 2 )); then exec 8<&-; return 2; fi
     if (( status != 0 )); then
-      log_event "$log" "第 $number 行失败：无法打开程序输出：$output" || { exec 8<&-; return 2; }
+      failures=$((failures + 1))
+      restart_failures[$key]=$failures
+      log_event "$log" "第 $number 行重启失败（连续 $failures 次）：无法打开程序输出：$output" || { exec 8<&-; return 2; }
+      if (( failures >= 3 )); then
+        log_event "$log" "连续 3 次重启失败，停止尝试重启，继续检查恢复：$line" || { exec 8<&-; return 2; }
+      fi
+    else
+      restart_pending[$key]=1
     fi
   done
   exec 8<&-
@@ -222,10 +249,10 @@ require_runtime() {
 }
 
 main() {
-  local interval=${1:-3} directory config log status sleeper=''
+  local interval=${1:-15} directory config log status sleeper=''
   local limit=$((512 * 1024 * 1024))
   if (( $# > 1 )) || [[ ! "$interval" =~ ^[0-9]+$ || ! "$interval" =~ [1-9] ]]; then
-    printf '用法：%s [正整数检查间隔秒数，默认 3]\n' "$0" >&2
+    printf '用法：%s [正整数检查间隔秒数，默认 15]\n' "$0" >&2
     return 1
   fi
   require_runtime || return 1

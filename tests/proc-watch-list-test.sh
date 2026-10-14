@@ -231,6 +231,50 @@ case_arguments() {
   assert_rejected main 3 extra
 }
 
+case_restart_limit() {
+  local directory="$case_dir/service" round key
+  make_worker "$directory"
+  printf '%s\n%s\n' "$directory/worker" "$directory/worker" >"$case_dir/list"
+  launch_process() { printf 'launch\n' >>"$case_dir/count"; }
+  printf -v key '%q ' "$directory/worker"
+  for ((round = 0; round < 6; round++)); do
+    check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  done
+  assert_equal "$(wc -l <"$case_dir/count" | tr -d ' ')" 3
+  assert_equal "${restart_failures[$key]}" 3
+  assert_equal "$(rg -c '停止尝试重启' "$case_dir/watch.log")" 1
+  fixture_process "$case_dir/proc" 301 "$directory" /bin/sh "$directory/worker"
+  check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  assert_equal "${restart_failures[$key]}" 0
+  assert_equal "$(rg -c '进程已恢复' "$case_dir/watch.log")" 1
+  : >"$case_dir/proc/301/cmdline"
+  check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  assert_equal "$(wc -l <"$case_dir/count" | tr -d ' ')" 4
+  # 一次失败后恢复，也应清零，其他 argv 独立计数。
+  check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  assert_equal "${restart_failures[$key]}" 1
+  printf '%s\0' /bin/sh "$directory/worker" >"$case_dir/proc/301/cmdline"
+  printf '%s other\n' "$directory/worker" >>"$case_dir/list"
+  check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  assert_equal "${restart_failures[$key]}" 0
+  assert_equal "$(wc -l <"$case_dir/count" | tr -d ' ')" 6
+}
+
+case_restart_open_failure() {
+  local round key
+  make_worker "$case_dir/service"
+  printf '%s\n' "$case_dir/service/worker" >"$case_dir/list"
+  launch_process() { printf 'launch\n' >>"$case_dir/count"; return 1; }
+  for ((round = 0; round < 5; round++)); do
+    check_once "$case_dir/list" "$case_dir/watch.log" 100000 "$case_dir/proc"
+  done
+  printf -v key '%q ' "$case_dir/service/worker"
+  assert_equal "${restart_failures[$key]}" 3
+  assert_equal "$(wc -l <"$case_dir/count" | tr -d ' ')" 3
+  assert_equal "$(rg -c '停止尝试重启' "$case_dir/watch.log")" 1
+}
+
 case_main_lifecycle() {
   command cp "$script_file" "$case_dir/watcher.sh"
   : >"$case_dir/proc-watch-list.txt"
@@ -266,7 +310,8 @@ HARNESS
 }
 
 for test_case in case_parser case_parser_rejects case_literal_arguments case_matching \
-  case_launch case_quiet case_configuration case_rotation case_error_isolation case_arguments case_main_lifecycle; do
+  case_launch case_quiet case_configuration case_rotation case_error_isolation case_arguments \
+  case_restart_limit case_restart_open_failure case_main_lifecycle; do
   case_dir="$test_dir/$test_case"
   mkdir -p "$case_dir"
   # 父进程收集结果，子进程启用 errexit；不要将子进程放入 if 条件。

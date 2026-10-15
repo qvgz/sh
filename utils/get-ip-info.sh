@@ -11,6 +11,8 @@ apis=(
     "https://ip.guide"
     "https://reallyfreegeoip.org/json"
     "https://api.ipbase.com/v1/json"
+    "https://myip.ipip.net"
+    "https://v4.yinghualuo.cn/bejson"
 )
 
 octet='(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])'

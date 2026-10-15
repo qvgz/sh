@@ -7,7 +7,7 @@ apis=(
   "https://ifconfig.me"
   "https://ip.sb"
   "https://checkip.amazonaws.com"
-  "http://whatismyip.akamai.com"
+  "https://whatismyip.akamai.com"
 )
 
 command -v curl >/dev/null || { printf '缺少命令：curl\n' >&2; exit 1; }

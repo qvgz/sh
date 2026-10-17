@@ -1,7 +1,16 @@
-`sudo bash centos-optimize.sh [选项]`：CentOS/Alma/Rocky 9/10 容器云主机基线；安装 tuned/chrony，设 virtual-guest，配置持久 journal、容器模块、IPv4 转发/网络参数和 SSH 选项。
+```bash
+sudo bash ops/centos-optimize.sh
+sudo bash ops/centos-optimize.sh --global-limits --timezone-shanghai
+```
 
-- `--global-limits`：全局 nofile/nproc、systemd 任务限制；新会话/服务才继承。
-- `--timezone-shanghai`：改为上海时区。
-- `--disable-selinux`、`--disable-firewalld`：显式关闭对应防护，默认保留；SELinux 完全禁用需重启。
+- 仅支持 root 执行的 CentOS/Alma/Rocky 9/10；依赖 dnf、systemctl、modprobe、sysctl、sshd。维护窗口执行并保留控制台访问。
+- 重启 journald、重载 sshd；失败停止，已完成步骤不自动回退。备份目录打印到终端，恢复需处理原文件、新增文件及运行状态。
 
-会重启 journald、重载 sshd；失败停止，已完成步骤不自动回退。配置及运行前状态备份到打印的目录；回退须恢复旧文件、删除本次新增文件，恢复 sysctl/tuned/时区及服务状态。应用前保留控制台访问，维护窗口核验业务网络和 SSH。
+功能需求：
+- 安装并启用 tuned、chrony，tuned 使用 virtual-guest。
+- journald 使用持久存储，磁盘上限 1G、运行时上限 256M。
+- 持久加载 overlay、br_netfilter、nf_conntrack；启用 IPv4 转发、TCP syncookies，关闭 IPv4/IPv6 重定向和源路由，IPv4 rp_filter=2。
+- SSH 配置关闭 KbdInteractiveAuthentication、GSSAPIAuthentication、UseDNS；校验后重载。
+- --global-limits 设置 fs.file-max/fs.nr_open=2097152，systemd 默认 nofile=1048576、nproc=65535、TasksMax=infinity，PAM nofile=1048576、nproc=65535；新会话/服务继承。
+- --timezone-shanghai 设置 Asia/Shanghai；--disable-selinux 写入 disabled 并尝试转为 permissive，完全禁用需重启；--disable-firewalld 停止并禁用服务，默认不关闭两者。
+- 写入前备份相关文件及 sysctl、firewalld、tuned、时区状态；末尾输出核验信息，部分观测命令失败不影响退出状态。

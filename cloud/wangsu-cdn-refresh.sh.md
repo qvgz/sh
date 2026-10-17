@@ -1,10 +1,13 @@
-# 网宿 CDN 刷新
+```bash
+WS_USERNAME=账号 WS_APIKEY=密钥 bash cloud/wangsu-cdn-refresh.sh https://example.com/a.css https://example.com/assets/
+WS_USERNAME=账号 WS_APIKEY=密钥 bash cloud/wangsu-cdn-refresh.sh 'urls=https://example.com/a.css https://example.com/b.js'
+```
 
-`WS_USERNAME=... WS_APIKEY=... bash wangsu-cdn-refresh.sh [urls=]URL ...`
+- 依赖 curl、openssl、jq；认证临时文件仅当前用户可读写，退出清理。URL 内空格需编码。
+- 连接超时 10 秒、请求最多 30 秒，不自动重试；失败或超时先核实平台记录。刷新不可撤销，提交成功不代表源站资源存在。
 
-- 至少一个 HTTP(S) URL；支持多个参数或一个空格/换行分隔参数，URL 内空格须编码。
-- 末尾 `/` 归入 `dirs`，动作 `expire`；其余归入 `urls`，动作 `delete`。没有对应 URL 时省略该组字段，整批只提交一次。
-- HTTP 成功且响应 JSON `Code` 为数字 `1` 时返回 0；`Code=0` 返回 1，其他错误返回非零。提交成功不代表源站文件/目录存在。
-- 连接超时 10 秒、请求最多 30 秒；超时不自动重试，先核实平台任务记录，避免重复提交。刷新无法撤销。
-
-依赖 `curl`、`openssl`、`jq`；认证临时文件仅当前用户可读写，退出清除。[接口文档](https://apiexplorer.wangsu.com/apiexplorer/doc?productType=all_product&language=ZH_CN&apiId=4515&rsr=ws)。
+功能需求：
+- 至少提供一个 HTTP(S) URL，支持多个参数或空白分隔的一段参数；各参数可带 urls= 前缀。
+- 末尾 / 的 URL 放入 dirs，dirAction=expire；其余放入 urls，urlAction=delete；空组省略。
+- 使用 WS_USERNAME、WS_APIKEY 和 GMT 请求时间生成认证，一次提交整批刷新请求。
+- HTTP 请求成功后输出响应，仅 JSON Code 为数字 1 时返回 0；其他响应或请求失败返回非零。

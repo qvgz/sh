@@ -1,3 +1,10 @@
-`bash ip-conn-stat.sh`：统计当前网络命名空间 ESTABLISHED TCP IPv4 连接，按远端和本地地址分别降序输出。
+```bash
+bash ops/ip-conn-stat.sh
+```
 
-依赖 Linux iproute2 `ss`、POSIX `awk`、`sort`。过滤常见私网、共享、链路本地、文档、基准及保留范围；连接快照不能判断入站/出站方向。
+- 依赖 Linux iproute2 ss、awk、sort、mktemp；仅统计当前网络命名空间，快照不能判断入站/出站方向。
+
+功能需求：
+- 获取 ESTABLISHED TCP IPv4 连接，去除端口，分别按远端及本地地址计数。
+- 排除脚本列出的私网、回环、共享、链路本地、文档、基准及保留地址范围，不保证涵盖所有特殊用途地址。
+- 输出“连接数 IP”，按数量降序、同数量按地址字符串升序；无结果只输出标题，命令失败返回非零。

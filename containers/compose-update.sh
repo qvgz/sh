@@ -51,7 +51,7 @@ fi
 [[ "$tag_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || exit 1
 
 compose_up() {
-    env "$tag_name=$1" docker compose -f "$compose_file" --env-file "$env_file" up -d 9>&-
+    env "$tag_name=$1" docker compose --env-file "$env_file" up -d 9>&-
 }
 
 run_update() {
@@ -66,10 +66,9 @@ run_update() {
     env_file=$(CDPATH='' cd -- "$(dirname -- "$env_file")" && printf '%s/%s' "$PWD" "$(basename -- "$env_file")") || return 1
     exec 9>"$env_file.lock" || return 1
     flock -n 9 || { printf '环境文件正在更新：%s\n' "$env_file" >&2; return 1; }
-    compose_file=$script_dir/compose.yaml
     placeholder="\${$tag_name}"
-    images=$(PLACEHOLDER="$placeholder" yq -r 'explode(.) | [.services[].image // "" | select(contains(strenv(PLACEHOLDER)))] | unique | .[]' \
-        "$compose_file" 9>&- ) || return 1
+    images=$(docker compose --env-file "$env_file" config --no-interpolate 9>&- |
+        PLACEHOLDER="$placeholder" yq -r 'explode(.) | [.services[].image // "" | select(contains(strenv(PLACEHOLDER)))] | unique | .[]' - 9>&- ) || return 1
     [ -n "$images" ] && [[ "$images" != *$'\n'* ]] || return 1
     [[ "$images" == *":$placeholder" ]] || return 1
     repository=${images%":$placeholder"}

@@ -21,6 +21,7 @@
 
 | 脚本名 | 介绍 |
 | :- | :- |
+| [compose-update.sh](https://qvgz.org/sh/containers/compose-update.sh) | Compose 容器更新 |
 | [docker-health.sh](https://qvgz.org/sh/containers/docker-health.sh) | [Docker 容器健康检查](containers/docker-health.sh.md) |
 | [docker-image-clean.sh](https://qvgz.org/sh/containers/docker-image-clean.sh) | [保留最近 N 个不同镜像](containers/docker-image-clean.sh.md) |
 | [docker-install.sh](https://qvgz.org/sh/containers/docker-install.sh) | [安装 Docker Engine](containers/docker-install.sh.md) |

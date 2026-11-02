@@ -43,6 +43,7 @@
 | [watchdog.sh](https://qvgz.org/sh/ops/watchdog.sh) | 进程守护 |
 | [watchexec-install.sh](https://qvgz.org/sh/ops/watchexec-install.sh) | [watchexec 安装](ops/watchexec-install.sh.md) |
 | [wechat2.sh](https://qvgz.org/sh/ops/wechat2.sh) | [macOS 微信多开](ops/wechat2.sh.md) |
+| [zoxide-fzf-install.sh](https://qvgz.org/sh/ops/zoxide-fzf-install.sh) | 安装 zoxide（z / zi 目录跳转）+ fzf（Ctrl+R 历史命令模糊搜索） |
 
 ## utils
 

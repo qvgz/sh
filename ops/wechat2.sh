@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # macOS 微信多开
-# macOS 微信副本：独立 Bundle ID，已有目标拒绝覆盖。
+# macOS 微信副本：独立 Bundle ID，已有副本覆盖更新程序，用户数据不动。
 
 set -euo pipefail
 count=${1:-2}
@@ -17,7 +17,8 @@ done
 bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$plist")
 for (( n=2; n<=count; n++ )); do
     target=/Applications/WeChat$n.app
-    [[ ! -e $target && ! -L $target ]] || { printf '目标已存在，请先自行备份或移走：%s\n' "$target" >&2; exit 1; }
+    [[ ! -L $target ]] || { printf '目标是符号链接，拒绝覆盖：%s\n' "$target" >&2; exit 1; }
+    ! pgrep -f "$target/Contents/MacOS/" >/dev/null || { printf '请先退出：%s\n' "$target" >&2; exit 1; }
 done
 sudo -v
 stage=$(sudo mktemp -d /Applications/.wechat-copy.XXXXXX)
@@ -41,7 +42,12 @@ for (( n=2; n<=count; n++ )); do
     sudo xattr -dr com.apple.quarantine "$app" 2>/dev/null || true
     sudo codesign --force --deep --sign - "$app"
     sudo codesign --verify --deep "$app"
+    action=已生成
+    if [[ -e $target ]]; then
+        sudo mv -- "$target" "$stage/old-WeChat$n.app"
+        action=已更新
+    fi
     sudo mv -n -- "$app" "$target"
     [[ ! -e $app ]] || { printf '目标出现冲突：%s\n' "$target" >&2; exit 1; }
-    printf '已生成：%s\n' "$target"
+    printf '%s：%s\n' "$action" "$target"
 done

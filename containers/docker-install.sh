@@ -68,7 +68,7 @@ case "$ID" in
     arch) pacman -S --needed --noconfirm docker docker-compose jq iputils ;;
 esac
 if [[ ! -e /etc/docker/daemon.json && ! -L /etc/docker/daemon.json ]]; then
-    printf '%s\n' '{"log-driver":"local","log-opts":{"max-size":"20m","max-file":"3"},"live-restore":true}' >"$tmp/daemon.json"
+    printf '%s\n' '{"no-new-privileges":true,"userns-remap":"default","storage-driver":"overlay2","features":{"containerd-snapshotter":false},"userland-proxy":false,"live-restore":true,"log-driver":"local","log-opts":{"max-size":"20m","max-file":"3"}}' >"$tmp/daemon.json"
 else
     cp -- /etc/docker/daemon.json "$tmp/daemon.json"
 fi

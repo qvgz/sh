@@ -3,358 +3,193 @@
 
 set -euo pipefail
 
-path="$(cd -- "$(dirname -- "$0")" && pwd -P)"
-default_file="${path}/rdap.sh.txt"
-query_interval="${RDAP_QUERY_INTERVAL:-3}"
-
-
-second_level_suffixes=(
-  "ac.cn"
-  "com.cn"
-  "edu.cn"
-  "gov.cn"
-  "net.cn"
-  "org.cn"
-)
+script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+default_list="$script_dir/rdap.sh.txt"
+interval=${RDAP_QUERY_INTERVAL:-3}
+bootstrap_url=https://data.iana.org/rdap/dns.json
+three_level_suffixes="ac.cn com.cn edu.cn gov.cn net.cn org.cn"
+date_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
 
 usage() {
-  echo "Usage: $0 [-v] domain" >&2
-  echo "       $0 [-f [file_path]] [-d [number]]" >&2
+  cat >&2 <<EOF
+Usage: $0 [-v] domain
+       $0 [-f [file]] [-d [days]]
+EOF
 }
 
+# 域名、子域名或 HTTP(S) URL -> 小写根域名
 root_domain() {
-  local domain=$1 suffix
-  domain=${domain#http://}; domain=${domain#https://}
-  domain=${domain%%/*}; domain=${domain%%:*}; domain=${domain%.}
-  domain=$(LC_ALL=C tr '[:upper:]' '[:lower:]' <<<"$domain")
-  [[ ${#domain} -le 253 && $domain == *.* && $domain != *..* &&
-     $domain != .* && $domain =~ ^[a-z0-9][a-z0-9.-]*[a-z0-9]$ ]] || return 1
-  for suffix in "${second_level_suffixes[@]}"; do
-    if [[ $domain == *.$suffix ]]; then
-      awk -F. 'NF>=3{print $(NF-2)"."$(NF-1)"."$NF}' <<<"$domain"; return
-    fi
-  done
-  awk -F. '{print $(NF-1)"."$NF}' <<<"$domain"
+  local d
+  d=$(LC_ALL=C tr '[:upper:]' '[:lower:]' <<<"$1")
+  d=${d#http://}; d=${d#https://}
+  d=${d%%/*}; d=${d%%:*}; d=${d%.}
+  [[ ${#d} -le 253 && $d =~ ^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$ ]] || return 1
+  awk -F. -v list=" $three_level_suffixes " '{
+    n = (NF >= 3 && index(list, " " $(NF-1) "." $NF " ")) ? 3 : 2
+    out = $(NF-n+1); for (i = NF-n+2; i <= NF; i++) out = out "." $i
+    print out
+  }' <<<"$d"
+}
+
+to_epoch() {
+  TZ=UTC date -d "$1" +%s 2>/dev/null || TZ=UTC date -j -f '%Y-%m-%d %T' "$1 00:00:00" +%s 2>/dev/null
+}
+
+valid_date() { [[ $1 =~ $date_re ]] && to_epoch "$1" >/dev/null; }
+
+days_until() {
+  local today target
+  today=$(to_epoch "$(date +%F)") && target=$(to_epoch "$1") || return 1
+  echo $(((target - today) / 86400))
+}
+
+# 标准化字段：每行 "名称<TAB>值"
+whois_info() {
+  awk '
+    BEGIN {
+      m["registry expiry date"] = "expiration"; m["expiration time"] = "expiration"
+      m["updated date"] = "last changed"
+      m["creation date"] = "registration"; m["registration time"] = "registration"
+      m["name server"] = "nameservers"
+    }
+    {
+      i = index($0, ":"); if (!i) next
+      k = tolower(substr($0, 1, i - 1)); gsub(/^[ \t]+|[ \t\r]+$/, "", k)
+      if (!(k in m) || (m[k] in v)) next
+      x = substr($0, i + 1); gsub(/^[ \t]+|[ \t\r]+$/, "", x)
+      if (x ~ /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/) x = substr(x, 1, 10)
+      if (x != "") v[m[k]] = x
+    }
+    END {
+      split("expiration,last changed,registration,nameservers", o, ",")
+      for (j = 1; j <= 4; j++) if (o[j] in v) printf "%s\t%s\n", o[j], v[o[j]]
+    }'
+}
+
+rdap_info() {
+  jq -r '
+    def ev($a): [(.events // [])[] | select(.eventAction == $a)
+                 | (.eventDate // "" | split("T")[0]) | select(. != "")][0] // empty;
+    select(.objectClassName == "domain" and .errorCode == null)
+    | ["expiration", ev("expiration")], ["last changed", ev("last changed")],
+      ["registration", ev("registration")],
+      ["nameservers", ((.nameservers // [])[0].ldhName // empty)]
+    | select(length == 2) | @tsv'
+}
+
+field() { awk -F'\t' -v k="$1" '$1 == k && !f { print $2; f = 1 }'; }
+
+query_whois() {
+  local body
+  command -v whois >/dev/null && command -v timeout >/dev/null || return 1
+  body=$(timeout -k 1 10 whois "$1" 2>/dev/null) || return 1
+  valid_date "$(whois_info <<<"$body" | field expiration)" || return 1
+  printf '%s\n' "$body"
 }
 
 query_rdap() {
-  local domain=$1 api body apis expiration
-  if [[ ! -s $work/bootstrap.json ]]; then
-    curl -fsS --connect-timeout 3 --max-time 10 https://data.iana.org/rdap/dns.json -o "$work/bootstrap.json" || return 1
+  local api body
+  if [[ ! -s $work/dns.json ]]; then
+    curl -fsS --connect-timeout 3 --max-time 10 -o "$work/dns.json.part" "$bootstrap_url" &&
+      mv -f -- "$work/dns.json.part" "$work/dns.json" || return 1
   fi
-  apis=$(jq -er --arg tld "${domain##*.}" '.services[] | select(.[0] | index($tld)) | .[1][]' "$work/bootstrap.json") || return 1
   while IFS= read -r api; do
-    [[ $api == https://* ]] || continue
-    if body=$(query_rdap_api "$api" "$domain") &&
-      jq -e '.objectClassName == "domain" and .errorCode == null' <<<"$body" >/dev/null 2>&1 &&
-      expiration=$(expiration_date <<<"$body") &&
-      [[ $expiration =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] &&
-      TZ=UTC date_to_epoch "$expiration" >/dev/null; then
-      printf '%s\n' "$body"; return 0
-    fi
-  done <<<"$apis"
+    body=$(curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 3 --max-time 8 \
+      "${api%/}/domain/$1" 2>/dev/null) || continue
+    valid_date "$(rdap_info <<<"$body" 2>/dev/null | field expiration)" || continue
+    printf '%s\n' "$body"; return 0
+  done < <(jq -r --arg t "${1##*.}" \
+    '.services[] | select(any(.[0][]; . == $t)) | .[1][] | select(startswith("https://"))' "$work/dns.json")
   return 1
 }
 
-query_rdap_api() {
-  curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 3 --max-time 8 "${1%/}/domain/$2" 2>/dev/null
-}
-
-query_rdap_with_expiration() {
-  local body date
-  body=$(query_rdap "$1") || return 1
-  date=$(expiration_date <<<"$body") || return 1
-  [[ -n $date ]] || return 1
-  printf '%s\n' "$body"
-}
-
-query_whois() {
-  command -v whois >/dev/null || return 1
-  [[ -n $timeout_bin ]] || return 1
-  "$timeout_bin" -k 1 10 whois "$1"
-}
-
-query_whois_with_expiration() {
-  local body date
-  body=$(query_whois "$1" 2>/dev/null) || return 1
-  date=$(whois_expiration_date <<<"$body")
-  [[ -n $date ]] || return 1
-  printf '%s\n' "$body"
-}
-
-print_rdap_info() {
-  jq -r '
-    def event_date($action):
-      [
-        (.events // [])[]
-        | select(.eventAction == $action)
-        | (.eventDate // "" | split("T")[0])
-        | select(. != "")
-      ][0] // empty;
-
-    [
-      ["expiration", event_date("expiration")],
-      ["last changed", event_date("last changed")],
-      ["registration", event_date("registration")],
-      ["nameservers", (((.nameservers // [])[0].ldhName) // empty)]
-    ][]
-    | select(length == 2 and .[1] != "")
-    | @tsv
-  '
-}
-
-print_whois_info() {
-  awk -F: '
-    BEGIN {
-      wanted["Registry Expiry Date"] = "expiration"
-      wanted["Expiration Time"] = "expiration"
-      wanted["Updated Date"] = "last changed"
-      wanted["Creation Date"] = "registration"
-      wanted["Registration Time"] = "registration"
-      wanted["Name Server"] = "nameservers"
-    }
-
-    {
-      key = $1
-      sub(/^[[:space:]]+/, "", key)
-      sub(/[[:space:]]+$/, "", key)
-      value = substr($0, length($1) + 2)
-      sub(/^[[:space:]]+/, "", value)
-      sub(/[[:space:]]+$/, "", value)
-      if (value ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
-        value = substr(value, 1, 10)
-      }
-    }
-
-    key in wanted && !(key in seen) {
-      values[wanted[key]] = value
-      seen[key] = 1
-    }
-
-    END {
-      if ("expiration" in values) print "expiration\t" values["expiration"]
-      if ("last changed" in values) print "last changed\t" values["last changed"]
-      if ("registration" in values) print "registration\t" values["registration"]
-      if ("nameservers" in values) print "nameservers\t" values["nameservers"]
-    }
-  '
-}
-
-print_domain_info() {
-  local domain="$1"
-  local body parsed date
-
-  if body="$(query_whois_with_expiration "$domain")"; then
-    date="$(whois_expiration_date <<<"$body")"
-    parsed="$(print_whois_info <<<"$body")"
-    if [[ -n "$date" && -n "$parsed" ]]; then
-      printf '%s\n' "$parsed"
-      return 0
-    fi
-  fi
-
-  if body="$(query_rdap_with_expiration "$domain")"; then
-    parsed="$(print_rdap_info <<<"$body" 2>/dev/null || true)"
-    if [[ -n "$parsed" ]]; then
-      printf '%s\n' "$parsed"
-      return 0
-    fi
-  fi
-
-  echo "Error: 无法查询 ${domain}，whois 与 RDAP 接口均已失败." >&2
+# 设置 src(whois|rdap) 与 body；WHOIS 优先
+fetch() {
+  if body=$(query_whois "$1"); then src=whois; return 0; fi
+  if body=$(query_rdap "$1"); then src=rdap; return 0; fi
   return 1
 }
 
-print_domain() {
-  local verbose="$1"
-  local input="$2"
-  local domain body
+info() { if [[ $src == whois ]]; then whois_info <<<"$body"; else rdap_info <<<"$body"; fi; }
 
-  domain="$(root_domain "$input")"
-  if [[ -z "$domain" ]]; then
-    echo "Error: 无效域名 ${input}" >&2
-    return 1
-  fi
-
-  if [[ "$verbose" == "1" ]]; then
-    if body="$(query_whois_with_expiration "$domain")"; then
-      printf '%s\n' "$body"
-      return 0
-    fi
-
-    body="$(query_rdap "$domain")" || {
-      echo "Error: 无法查询 ${domain}，whois 与 RDAP 接口均已失败." >&2
-      return 1
-    }
-    jq . <<<"$body"
-  else
-    print_domain_info "$domain"
-  fi
+replace_file() {
+  local tmp
+  tmp=$(mktemp "$1.XXXXXX") || return 1
+  if cat >"$tmp" && mv -f -- "$tmp" "$1"; then return 0; fi
+  rm -f -- "$tmp"; return 1
 }
 
-date_to_epoch() {
-  local date_value="$1"
-
-  date -d "$date_value" +%s 2>/dev/null && return 0
-  date -j -f "%Y-%m-%d %T" "$date_value 00:00:00" +%s 2>/dev/null
+align() {
+  awk '{ a[NR] = $1; b[NR] = $2; c[NR] = $3; if (length($1) > w) w = length($1) }
+    END { for (i = 1; i <= NR; i++) { l = sprintf("%-*s  %-10s  %s", w, a[i], b[i], c[i]); sub(/ +$/, "", l); print l } }'
 }
 
-days_until() {
-  local date_value="$1"
-  local today_epoch date_epoch
-
-  today_epoch="$(TZ=UTC date_to_epoch "$(date +%Y-%m-%d)")" || return 1
-  date_epoch="$(TZ=UTC date_to_epoch "$date_value")" || return 1
-  echo $(((date_epoch - today_epoch) / 86400))
-}
-
-expiration_date() {
-  jq -r '
-    [
-      (.events // [])[]
-      | select(.eventAction == "expiration")
-      | (.eventDate // "" | split("T")[0])
-      | select(. != "")
-    ][0] // empty
-  '
-}
-
-whois_expiration_date() {
-  awk -F: '
-    {
-      key = $1
-      sub(/^[[:space:]]+/, "", key)
-      sub(/[[:space:]]+$/, "", key)
-      if (key != "Registry Expiry Date" && key != "Expiration Time") next
-
-      value = substr($0, length($1) + 2)
-      sub(/^[[:space:]]+/, "", value)
-      sub(/[[:space:]]+$/, "", value)
-      if (value ~ /^[0-9]{4}-[0-9]{2}-[0-9]{2}/) {
-        value = substr(value, 1, 10)
-      }
-      print value
-      exit
-    }
-  '
-}
-
-query_expiration_date() {
-  local domain="$1"
-  local body date
-
-  if body="$(query_whois_with_expiration "$domain")"; then
-    date="$(whois_expiration_date <<<"$body")"
-    [[ -n "$date" ]] && printf '%s\n' "$date" && return 0
-  fi
-
-  if body="$(query_rdap_with_expiration "$domain")"; then
-    date="$(expiration_date <<<"$body" 2>/dev/null || true)"
-    [[ -n "$date" ]] && printf '%s\n' "$date" && return 0
-  fi
-
-  return 1
-}
-
-
-normalize_domain() { root_domain "$1"; }
-lookup_date() { query_expiration_date "$1"; }
-check_runtime() {
-  local bin
-  for bin in curl jq awk; do
-    command -v "$bin" >/dev/null || { printf '缺少命令：%s\n' "$bin" >&2; return 1; }
-  done
-  timeout_bin=$(command -v timeout || command -v gtimeout || true)
-}
-
-resolve_file_path() {
-  local requested=$1
-  [[ -n $requested ]] || requested=$default_file
-  [[ -f $requested && -r $requested ]] || { printf '清单不可读：%s\n' "$requested" >&2; return 1; }
-  printf '%s\n' "$requested"
-}
-
-# 每次运行缓存成功和失败结果；报告用同目录临时文件替换。
-write_check_file() {
-  local file=$1 output=$1.check.txt domain value days query_domain
-  local rows=$work/rows stage
-  : >"$rows"
-  while read -r domain _ || [[ -n $domain ]]; do
-    domain=${domain%$'\r'}
-    [[ -n $domain && $domain != \#* ]] || continue
-    query_domain=$(normalize_domain "$domain") || {
-      printf '%s X\n' "$domain" >>"$rows"; RESULT=1; continue
-    }
-    if [[ ! -f $work/cache/$query_domain ]]; then
-      if value=$(lookup_date "$query_domain") && [[ -n $value ]]; then
-        printf '%s\n' "$value" >"$work/cache/$query_domain"
-      else
-        printf 'X\n' >"$work/cache/$query_domain"
+check_list() {
+  local list=$1 due=$2 report=$1.check.txt input domain value days rc=0
+  mkdir -p "$work/cache"
+  while read -r -u 3 input _ || [[ -n ${input:-} ]]; do
+    input=${input%$'\r'}
+    [[ -n $input && $input != \#* ]] || continue
+    value=X
+    if domain=$(root_domain "$input"); then
+      if [[ ! -f $work/cache/$domain ]]; then
+        if fetch "$domain"; then info | field expiration; else echo X; fi >"$work/cache/$domain"
+        sleep "$interval"
       fi
-      sleep "$query_interval"
+      value=$(<"$work/cache/$domain")
     fi
-    value=$(cat "$work/cache/$query_domain")
     if [[ $value != X ]] && days=$(days_until "$value"); then
-      printf '%s %s %s\n' "$domain" "$value" "$days" >>"$rows"
+      printf '%s %s %s\n' "$input" "$value" "$days"
     else
-      printf '%s X\n' "$domain" >>"$rows"; RESULT=1
+      printf '%s X\n' "$input"; rc=1
     fi
-  done <"$file"
-  stage=$(mktemp "${output}.XXXXXX")
-  # 保留排序中间文件于 work，失败时不覆盖旧报告。
-  awk '{print ($2=="X" ? "0 0 " : "1 " $3 " ") $0}' "$rows" |
-    sort -k1,1n -k2,2n | cut -d' ' -f3- >"$work/sorted"
-  if format_rows "$work/sorted" >"$stage" && mv -f -- "$stage" "$output"; then :; else
-    rm -f -- "$stage"; return 1
-  fi
-  printf '报告：%s\n' "$output"
-}
+  done 3<"$list" >"$work/rows"
 
-format_rows() {
-  awk '{d[NR]=$1;e[NR]=$2;n[NR]=$3;if(length($1)>w)w=length($1)}
-    END{for(i=1;i<=NR;i++)printf "%-*s  %-10s  %s\n",w,d[i],e[i],n[i]}' "$1"
+  awk '{ print ($2 == "X" ? "0 0" : "1 " $3), $0 }' "$work/rows" |
+    sort -s -k1,1n -k2,2n | cut -d' ' -f3- | align | replace_file "$report"
+  echo "报告：$report"
+  if [[ -n $due ]]; then
+    awk -v n="$due" '$2 == "X" || $3 <= n' "$report" | replace_file "$1.check.${due}d.txt"
+    echo "到期清单：$1.check.${due}d.txt"
+  fi
+  return "$rc"
 }
 
 main() {
-  local verbose=0 file_mode=0 due_mode=0 requested='' due_days=30 file stage
-  RESULT=0
-  while (( $# )); do
-    case "$1" in
+  local verbose=0 batch=0 list=$default_list due='' bin domain
+  while (($#)); do
+    case $1 in
       -v) verbose=1; shift ;;
-      -f) file_mode=1; shift
-          if (( $# )) && [[ $1 != -* ]]; then requested=$1; shift; fi ;;
-      -d) due_mode=1; shift
-          if (( $# )) && [[ $1 =~ ^[0-9]+$ ]]; then due_days=$1; shift; fi ;;
+      -f) batch=1; shift
+          if (($#)) && [[ $1 != -* ]]; then list=$1; shift; fi ;;
+      -d) batch=1; due=30; shift
+          if (($#)) && [[ $1 =~ ^[0-9]{1,6}$ ]]; then due=$((10#$1)); shift; fi ;;
       -h|--help) usage; return 0 ;;
       -*) usage; return 2 ;;
       *) break ;;
     esac
   done
-  [[ $query_interval =~ ^[0-9]+([.][0-9]+)?$ ]] || { printf '查询间隔无效\n' >&2; return 2; }
-  [[ $due_days =~ ^(0|[1-9][0-9]*)$ && ${#due_days} -le 6 ]] || return 2
-  check_runtime
-  work=$(mktemp -d "${TMPDIR:-/tmp}/domain-query.XXXXXX")
+  [[ $interval =~ ^[0-9]+([.][0-9]+)?$ ]] || { echo "RDAP_QUERY_INTERVAL 无效：$interval" >&2; return 2; }
+  for bin in curl jq awk; do
+    command -v "$bin" >/dev/null || { echo "缺少命令：$bin" >&2; return 1; }
+  done
+
+  work=$(mktemp -d "${TMPDIR:-/tmp}/rdap.XXXXXX")
   trap 'rm -rf -- "$work"' EXIT
-  trap 'exit 130' INT
-  trap 'exit 143' TERM
-  mkdir "$work/cache"
-  if (( file_mode || due_mode )); then
-    (( $# == 0 )) || { usage; return 2; }
-    file=$(resolve_file_path "$requested")
-    write_check_file "$file"
-    if (( due_mode )); then
-      stage=$(mktemp "${file}.check.${due_days}d.txt.XXXXXX")
-      if awk -v days="$due_days" '$2=="X" || (NF>=3 && $3<=days)' "$file.check.txt" >"$stage" &&
-        mv -f -- "$stage" "$file.check.${due_days}d.txt"; then :; else
-        rm -f -- "$stage"; return 1
-      fi
-      printf '到期清单：%s\n' "$file.check.${due_days}d.txt"
-    fi
-    return "$RESULT"
+
+  if ((batch)); then
+    (($# == 0 && !verbose)) || { usage; return 2; }
+    [[ -f $list && -r $list ]] || { echo "清单不可读：$list" >&2; return 2; }
+    check_list "$list" "$due"
+    return
   fi
-  (( $# == 1 )) || { usage; return 2; }
-  domain=$(normalize_domain "$1") || { printf '域名无效：%s\n' "$1" >&2; return 2; }
-  print_domain "$verbose" "$domain"
+
+  (($# == 1)) || { usage; return 2; }
+  domain=$(root_domain "$1") || { echo "域名无效：$1" >&2; return 2; }
+  fetch "$domain" || { echo "无法查询 $domain：WHOIS 与 RDAP 均失败" >&2; return 1; }
+  if ((!verbose)); then info
+  elif [[ $src == whois ]]; then printf '%s\n' "$body"
+  else jq . <<<"$body"; fi
 }
 
-main "$@"
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then main "$@"; fi

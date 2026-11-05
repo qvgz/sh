@@ -35,21 +35,19 @@
 | [debian-rclocal.sh](https://qvgz.org/sh/ops/debian-rclocal.sh) | [Debian 启用 rc.local](ops/debian-rclocal.sh.md) |
 | [ip-conn-stat.sh](https://qvgz.org/sh/ops/ip-conn-stat.sh) | [按本地/远端地址统计已建立 TCP IPv4 连接](ops/ip-conn-stat.sh.md) |
 | [linux-baseline.sh](https://qvgz.org/sh/ops/linux-baseline.sh) | [采集 CPU、内存、磁盘、网络当前负载](ops/linux-baseline.sh.md) |
-| [log-clean.sh](https://qvgz.org/sh/ops/log-clean.sh) | [轮转目录顶层 .log 文件](ops/log-clean.sh.md) |
-| [proc-watch-list.sh](https://qvgz.org/sh/ops/proc-watch-list.sh) | [Linux 进程列表守护](ops/proc-watch-list.sh.md) |
+| [log-clean.sh](https://qvgz.org/sh/ops/log-clean.sh) | [备份目录顶层 .log 文件：压缩复制到 backup/昨日YYYYMMDD/ 后清空原文件，](ops/log-clean.sh.md) |
 | [rdap.sh](https://qvgz.org/sh/ops/rdap.sh) | [WHOIS/RDAP 查询域名注册信息及到期时间](ops/rdap.sh.md) |
 | [ssl-check.sh](https://qvgz.org/sh/ops/ssl-check.sh) | [HTTPS/SSL/TLS 证书信息及到期时间](ops/ssl-check.sh.md) |
-| [watchdog.sh](https://qvgz.org/sh/ops/watchdog.sh) | 进程守护 |
-| [watchexec-install.sh](https://qvgz.org/sh/ops/watchexec-install.sh) | [watchexec 安装](ops/watchexec-install.sh.md) |
+| [watchdog.sh](https://qvgz.org/sh/ops/watchdog.sh) | [进程守护，兼容 CentOS 5（Bash 3.2）](ops/watchdog.sh.md) |
 | [wechat2.sh](https://qvgz.org/sh/ops/wechat2.sh) | [macOS 微信多开](ops/wechat2.sh.md) |
-| [zoxide-fzf-install.sh](https://qvgz.org/sh/ops/zoxide-fzf-install.sh) | 安装 zoxide（z / zi 目录跳转）+ fzf（Ctrl+R 历史命令模糊搜索） |
+| [zoxide-fzf-install.sh](https://qvgz.org/sh/ops/zoxide-fzf-install.sh) | [安装 zoxide（z / zi 目录跳转）+ fzf（Ctrl+R 历史命令模糊搜索），支持 EL 9/10、Debian 12+/Ubuntu](ops/zoxide-fzf-install.sh.md) |
 
 ## utils
 
 | 脚本名 | 介绍 |
 | :- | :- |
 | [check-ip.sh](https://qvgz.org/sh/utils/check-ip.sh) | 检查 IP 格式 (IPv4) |
-| [cleanup-run.sh](https://qvgz.org/sh/utils/cleanup-run.sh) | [退出时清理运行的子进程](utils/cleanup-run.sh.md) |
+| [cleanup-run.sh](https://qvgz.org/sh/utils/cleanup-run.sh) | [退出时清理运行的子进程（整个进程组）](utils/cleanup-run.sh.md) |
 | [convert-middle-underline.sh](https://qvgz.org/sh/utils/convert-middle-underline.sh) | 转换中划线为下划线 |
 | [create-name.sh](https://qvgz.org/sh/utils/create-name.sh) | [生成随机用户名](utils/create-name.sh.md) |
 | [create-passwd.sh](https://qvgz.org/sh/utils/create-passwd.sh) | [生成随机密码](utils/create-passwd.sh.md) |

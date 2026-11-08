@@ -36,6 +36,7 @@
 | [ip-conn-stat.sh](https://qvgz.org/sh/ops/ip-conn-stat.sh) | [按本地/远端地址统计已建立 TCP IPv4 连接](ops/ip-conn-stat.sh.md) |
 | [linux-baseline.sh](https://qvgz.org/sh/ops/linux-baseline.sh) | [采集 CPU、内存、磁盘、网络当前负载](ops/linux-baseline.sh.md) |
 | [log-clean.sh](https://qvgz.org/sh/ops/log-clean.sh) | [备份目录顶层 .log 文件：压缩复制到 backup/昨日YYYYMMDD/ 后清空原文件，](ops/log-clean.sh.md) |
+| [log-trigger.sh](https://qvgz.org/sh/ops/log-trigger.sh) | [监控文件新增行，匹配字符串（支持 * ? 通配）在时间窗口内达到次数时执行命令，带抑制时间，最低兼容 CentOS 7.9](ops/log-trigger.sh.md) |
 | [rdap.sh](https://qvgz.org/sh/ops/rdap.sh) | [WHOIS/RDAP 查询域名注册信息及到期时间](ops/rdap.sh.md) |
 | [ssl-check.sh](https://qvgz.org/sh/ops/ssl-check.sh) | [HTTPS/SSL/TLS 证书信息及到期时间](ops/ssl-check.sh.md) |
 | [watchdog.sh](https://qvgz.org/sh/ops/watchdog.sh) | [进程守护，兼容 CentOS 5（Bash 3.2）](ops/watchdog.sh.md) |

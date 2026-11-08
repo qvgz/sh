@@ -13,6 +13,7 @@ check() {
     if [[ $got == "$want" ]]; then echo "ok   $name"; else
         echo "FAIL $name: want=[$want] got=[$got]"; failures=$((failures + 1)); fi
 }
+fail_msg() { echo "FAIL $*"; failures=$((failures + 1)); }
 lines() { [[ -f $1 ]] && wc -l <"$1" | tr -d ' ' || echo 0; }
 # start 文件 匹配串 [HITS] [SUPPRESS] [WINDOW] [CMD]：后台启动并等待 tail 就绪
 start() {
@@ -45,7 +46,8 @@ check "抑制期内不再执行" 1 "$(lines "$t/out")"
 check "日志：触发时间、匹配行、成功，不含命令输出" 'x ERROR [db].failX y | 执行成功' \
     "$(sed -E 's/^\[[0-9-]{10} [0-9:]{8}\] 匹配: //' "$t/log")"
 stop
-check "退出后 tail 不残留" 0 "$(pgrep -f -- "tail -n0 -F --pid=.* -- $f" | wc -l)"
+command -v pgrep >/dev/null || fail_msg "缺少 pgrep，无法检查 tail 残留"
+check "退出后 tail 不残留" 0 "$(pgrep -f -- "tail -n0 -F .*--pid=.* -- $f" | wc -l)"
 
 # 日志时区：默认 Asia/Shanghai，可用 TZ 覆盖
 for tz in '' UTC; do
@@ -100,7 +102,15 @@ echo boom1 >>"$f"; sleep 0.5; echo boom2 >>"$f"; sleep 2.5; echo boom3 >>"$f"; s
 check "抑制过期后再次执行" $'boom1\nboom3' "$(cat "$t/out" 2>/dev/null)"
 stop
 
-# 文件不存在时启动、轮转（重建）后继续监控
+# 文件已存在（inotify 模式）轮转后继续监控
+h=$t/c.log; : >"$h"
+start "$h" 'rot' 1 0
+echo rot1 >>"$h"; sleep 1
+mv "$h" "$h.1"; echo rot2 >"$h"; sleep 2
+check "已存在文件轮转后继续监控" $'rot1\nrot2' "$(cat "$t/out" 2>/dev/null)"
+stop
+
+# 文件不存在时启动（轮询模式）、轮转（重建）后约 1 秒内切换
 g=$t/b.log
 start "$g" 'up' 1 0
 echo up1 >"$g"; sleep 2

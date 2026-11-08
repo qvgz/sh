@@ -11,8 +11,9 @@ FILE=/var/log/app/app.log PATTERN='OutOfMemory' HITS=10 WINDOW=60 SUPPRESS=300 \
 # <超时前已有输出>
 ```
 
-- 最低兼容 CentOS 7.9.2009（Bash 4.2、coreutils 8.22、grep 2.20），依赖 GNU tail（`-F --pid`）、grep、sed。
-- CentOS 7 的 tail 8.22 不识别 overlayfs 等文件系统，文件被删除、轮转重建后报 `replaced with a remote file` 并停止跟踪，容器内监控须挂载卷；ext4、xfs、tmpfs 正常。
+- 最低兼容 CentOS 7.9.2009（Bash 4.2、coreutils 8.22、grep 2.20），已测 AlmaLinux 10（Bash 5.2、coreutils 9.5、grep 3.11）；依赖 GNU tail（`-F --pid --max-unchanged-stats`）、grep、sed、timeout。
+- CentOS 7 的 tail 8.22 把 overlayfs 当远程文件，文件被删除、轮转重建后报 `replaced with a remote file` 并停止跟踪（进程不退出），容器内或经 `overlay2/.../merged` 路径监控须改用挂载卷；ext4、xfs、tmpfs 正常，coreutils 8.32 起 overlayfs 正常。
+- 文件在 overlayfs、fuse 上或启动时不存在，tail 全程轮询：轮转后约 1 秒切到新文件并从头读，这 1 秒内新文件再被轮转或截断会丢行。
 - 命令由 `bash -c` 后台执行，不阻塞监控，必须可信；日志在命令结束后写出，长时间运行的命令日志随之延后。命令中后台启动的常驻进程须重定向输出（`>/dev/null 2>&1 &`），否则占用输出管道，该次执行结果永不输出。
 - 超时由 coreutils `timeout` 对整个进程组发信号，命令中启动的子进程（含后台进程）一并终止；`TIMEOUT>0` 时命令自身以 124/137 退出也会记为超时。
 - `SUPPRESS=0` 且 `HITS=1` 时每条匹配行起一个进程，日志暴增会大量并发执行命令。

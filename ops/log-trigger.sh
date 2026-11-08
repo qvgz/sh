@@ -60,7 +60,8 @@ while IFS= read -r line; do
     ((last >= 0 && now >= last && now - last < SUPPRESS)) && continue
     last=$now
     run "$(printf '%(%F %T)T' "$now")" "$line" &
+# --max-unchanged-stats=1：轮询模式（overlayfs/fuse、启动时文件不存在）下轮转约 1 秒切到新文件，默认 5 次约 5 秒
 # LC_ALL=C：按字节匹配，非 UTF-8（如 GBK）内容不影响 * 匹配
-done < <(tail -n0 -F --pid=$$ -- "$FILE" | LC_ALL=C grep -a --line-buffered -e "$re")
+done < <(tail -n0 -F --max-unchanged-stats=1 --pid=$$ -- "$FILE" | LC_ALL=C grep -a --line-buffered -e "$re")
 # 正常不会到达：tail 异常退出时返回非 0，便于 systemd 等感知
 die "tail 已退出，监控结束: $FILE"

@@ -14,8 +14,10 @@ ticks=$(( 10#${BASH_REMATCH[1]} * 10 + 10#${BASH_REMATCH[3]:-0} ))
 pid=''
 # $1：收到的信号；为空表示子命令已自行结束。
 cleanup() {
-    local status=$? sig=${1:-TERM} i
-    trap - EXIT HUP INT TERM
+    local status=$? sig=TERM i
+    [[ ${1:-} == INT ]] && sig=INT
+    trap - EXIT
+    trap '' HUP INT TERM
     if [[ -n $pid ]]; then
         if kill -"$sig" -- "-$pid" 2>/dev/null; then
             # 唤醒已停止的进程，使其能处理信号。
@@ -29,7 +31,10 @@ cleanup() {
         wait "$pid" 2>/dev/null
     fi
     # 以同一信号结束自身，调用方可识别为被信号终止。
-    [[ -z ${1:-} ]] || kill -"$1" "$$"
+    if [[ -n ${1:-} ]]; then
+        trap - "$1"
+        kill -"$1" "$$"
+    fi
     exit "$status"
 }
 trap cleanup EXIT

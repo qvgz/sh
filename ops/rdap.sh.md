@@ -5,7 +5,7 @@ bash ops/rdap.sh -f domains.txt -d 30
 bash ops/rdap.sh -d
 ```
 
-- 依赖 curl、jq、awk、GNU/BSD date；WHOIS 可选，需 whois 和 timeout。WHOIS 限时 10 秒（再给 1 秒强制终止），IANA 列表最多 10 秒，各 RDAP 请求最多 8 秒，不自动重试。
+- 依赖 curl、jq、awk、GNU/BSD date；WHOIS 可选，需 whois 和 timeout。WHOIS 限时 15 秒（再给 1 秒强制终止），IANA 列表与各 RDAP 请求建连 5 秒/最多 15 秒，支持失败自动重试（RDAP_RETRIES 默认 2 轮）。
 - 根域名按最后两级提取，仅 ac.cn/com.cn/edu.cn/gov.cn/net.cn/org.cn 保留三级；其他公共后缀需调整脚本，IDN 需使用 Punycode。
 - 批量查询间隔 RDAP_QUERY_INTERVAL 默认 3 秒，支持非负小数；报告覆盖同名旧报告，剩余天数按本地日历日期计算。
 
@@ -17,4 +17,4 @@ bash ops/rdap.sh -d
 - -f [清单] 启用批量，默认脚本旁 rdap.sh.txt；显式路径须可读。每行首列作为输入，忽略空行和注释。
 - 生成 清单.check.txt：原输入、YYYY-MM-DD 到期日、剩余天数；失败写 X 且天数留空，X 置顶，其余按天数升序（同值保持清单顺序）并对齐列，原子替换报告。
 - -d [天数] 默认 30，生成全量报告及 清单.check.Nd.txt，保留天数 ≤ N（含已过期）和 X；单独 -d 使用默认清单。
-- 同次运行缓存成功及失败结果，重复根域名不重复查询，仅实际批量查询后等待；任一条失败返回非零。
+- 同次运行缓存成功及失败结果，重复根域名不重复查询；批量模式按 TLD 分散查询顺序，失败域名冷却后分轮补查；任一条最终失败返回非零。

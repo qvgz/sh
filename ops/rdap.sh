@@ -6,6 +6,7 @@ set -euo pipefail
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
 default_list="$script_dir/rdap.sh.txt"
 interval=${RDAP_QUERY_INTERVAL:-3}
+retries=${RDAP_RETRIES:-2}
 bootstrap_url=https://data.iana.org/rdap/dns.json
 three_level_suffixes="ac.cn com.cn edu.cn gov.cn net.cn org.cn"
 date_re='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
@@ -79,22 +80,64 @@ rdap_info() {
 
 field() { awk -F'\t' -v k="$1" '$1 == k && !f { print $2; f = 1 }'; }
 
+pause() {
+  awk -v s="$1" 'BEGIN { exit (s + 0 > 0 ? 0 : 1) }' || return 0
+  sleep "$1"
+}
+
+backoff_delay() {
+  awk -v i="$interval" -v r="$1" 'BEGIN { printf "%.3f\n", i * (r + 1) }'
+}
+
+# 按 TLD 轮询交错排列唯一域名，分散对同一注册局的连续查询
+interleave_by_tld() {
+  awk -F. '
+    {
+      tld = $NF
+      if (!(tld in count)) order[++tlds] = tld
+      items[tld, ++count[tld]] = $0
+      if (count[tld] > max_c) max_c = count[tld]
+    }
+    END {
+      for (i = 1; i <= max_c; i++) {
+        for (j = 1; j <= tlds; j++) {
+          tld = order[j]
+          if (i <= count[tld]) print items[tld, i]
+        }
+      }
+    }'
+}
+
 query_whois() {
   local body
   command -v whois >/dev/null && command -v timeout >/dev/null || return 1
-  body=$(timeout -k 1 10 whois "$1" 2>/dev/null) || return 1
+  body=$(timeout -k 1 15 whois "$1" 2>/dev/null) || return 1
   valid_date "$(whois_info <<<"$body" | field expiration)" || return 1
   printf '%s\n' "$body"
 }
 
+ensure_bootstrap() {
+  local attempt
+  [[ -s $work/dns.json ]] && return 0
+  for ((attempt = 0; attempt <= retries; attempt++)); do
+    if ((attempt > 0)); then
+      pause "$interval"
+    fi
+    if curl -fsS --connect-timeout 5 --max-time 15 -o "$work/dns.json.part" "$bootstrap_url" &&
+      jq -e '.services | type == "array"' "$work/dns.json.part" >/dev/null 2>&1 &&
+      mv -f -- "$work/dns.json.part" "$work/dns.json"; then
+      return 0
+    fi
+    rm -f -- "$work/dns.json.part"
+  done
+  return 1
+}
+
 query_rdap() {
   local api body
-  if [[ ! -s $work/dns.json ]]; then
-    curl -fsS --connect-timeout 3 --max-time 10 -o "$work/dns.json.part" "$bootstrap_url" &&
-      mv -f -- "$work/dns.json.part" "$work/dns.json" || return 1
-  fi
+  ensure_bootstrap || return 1
   while IFS= read -r api; do
-    body=$(curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 3 --max-time 8 \
+    body=$(curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 5 --max-time 15 \
       "${api%/}/domain/$1" 2>/dev/null) || continue
     valid_date "$(rdap_info <<<"$body" 2>/dev/null | field expiration)" || continue
     printf '%s\n' "$body"; return 0
@@ -107,6 +150,19 @@ query_rdap() {
 fetch() {
   if body=$(query_whois "$1"); then src=whois; return 0; fi
   if body=$(query_rdap "$1"); then src=rdap; return 0; fi
+  return 1
+}
+
+fetch_with_retry() {
+  local round
+  for ((round = 0; round <= retries; round++)); do
+    if ((round > 0)); then
+      pause "$(backoff_delay "$round")"
+    fi
+    if fetch "$1"; then
+      return 0
+    fi
+  done
   return 1
 }
 
@@ -126,16 +182,56 @@ align() {
 
 check_list() {
   local list=$1 due=$2 report=$1.check.txt input domain value days rc=0
+  local -a pending=() next_pending=()
+  local round idx total
   mkdir -p "$work/cache"
+  : >"$work/entries"
+  : >"$work/domains"
   while read -r -u 3 input _ || [[ -n ${input:-} ]]; do
     input=${input%$'\r'}
     [[ -n $input && $input != \#* ]] || continue
-    value=X
     if domain=$(root_domain "$input"); then
-      if [[ ! -f $work/cache/$domain ]]; then
-        if fetch "$domain"; then info | field expiration; else echo X; fi >"$work/cache/$domain"
-        sleep "$interval"
+      printf '%s\t%s\n' "$input" "$domain" >>"$work/entries"
+      if [[ ! -e $work/cache/$domain ]]; then
+        : >"$work/cache/$domain"
+        printf '%s\n' "$domain" >>"$work/domains"
       fi
+    else
+      printf '%s\t\n' "$input" >>"$work/entries"
+    fi
+  done 3<"$list"
+
+  while IFS= read -r domain; do
+    [[ -n $domain ]] && pending+=("$domain")
+  done < <(interleave_by_tld <"$work/domains")
+
+  for ((round = 0; round <= retries && ${#pending[@]} > 0; round++)); do
+    if ((round > 0)); then
+      pause "$(backoff_delay "$round")"
+    fi
+    next_pending=()
+    total=${#pending[@]}
+    for ((idx = 0; idx < total; idx++)); do
+      domain=${pending[idx]}
+      if fetch "$domain"; then
+        info | field expiration >"$work/cache/$domain"
+      else
+        printf 'X\n' >"$work/cache/$domain"
+        next_pending+=("$domain")
+      fi
+      if ((idx + 1 < total)); then
+        pause "$interval"
+      fi
+    done
+    pending=()
+    if ((${#next_pending[@]} > 0)); then
+      pending=("${next_pending[@]}")
+    fi
+  done
+
+  while IFS=$'\t' read -r input domain; do
+    value=X
+    if [[ -n $domain ]]; then
       value=$(<"$work/cache/$domain")
     fi
     if [[ $value != X ]] && days=$(days_until "$value"); then
@@ -143,7 +239,7 @@ check_list() {
     else
       printf '%s X\n' "$input"; rc=1
     fi
-  done 3<"$list" >"$work/rows"
+  done <"$work/entries" >"$work/rows"
 
   awk '{ print ($2 == "X" ? "0 0" : "1 " $3), $0 }' "$work/rows" |
     sort -s -k1,1n -k2,2n | cut -d' ' -f3- | align | replace_file "$report"
@@ -170,6 +266,7 @@ main() {
     esac
   done
   [[ $interval =~ ^[0-9]+([.][0-9]+)?$ ]] || { echo "RDAP_QUERY_INTERVAL 无效：$interval" >&2; return 2; }
+  [[ $retries =~ ^[0-9]+$ ]] || { echo "RDAP_RETRIES 无效：$retries" >&2; return 2; }
   for bin in curl jq awk; do
     command -v "$bin" >/dev/null || { echo "缺少命令：$bin" >&2; return 1; }
   done
@@ -186,7 +283,7 @@ main() {
 
   (($# == 1)) || { usage; return 2; }
   domain=$(root_domain "$1") || { echo "域名无效：$1" >&2; return 2; }
-  fetch "$domain" || { echo "无法查询 $domain：WHOIS 与 RDAP 均失败" >&2; return 1; }
+  fetch_with_retry "$domain" || { echo "无法查询 $domain：WHOIS 与 RDAP 均失败" >&2; return 1; }
   if ((!verbose)); then info
   elif [[ $src == whois ]]; then printf '%s\n' "$body"
   else jq . <<<"$body"; fi

@@ -16,15 +16,16 @@ check() {
 future=$(date -d '+10 days' +%F)
 far=$(date -d '+100 days' +%F)
 mkdir -p "$t/bin"
-# whois：仅 a.com 有到期字段
+# whois：仅 a.com / c.cn 有到期字段；支持记录查询顺序
 cat >"$t/bin/whois" <<EOF
 #!/usr/bin/env bash
+if [[ -n \${WHOIS_LOG:-} ]]; then printf '%s\n' "\$1" >>"\$WHOIS_LOG"; fi
 case \$1 in
-  a.com) printf 'Registry Expiry Date: ${future}T00:00:00Z\nCreation Date: 2000-01-01T00:00:00Z\nName Server: NS1.A.COM\nName Server: NS2.A.COM\n' ;;
+  a.com|c.cn) printf 'Registry Expiry Date: ${future}T00:00:00Z\nCreation Date: 2000-01-01T00:00:00Z\nName Server: NS1.A.COM\nName Server: NS2.A.COM\n' ;;
   *) echo 'No match' ;;
 esac
 EOF
-# curl：IANA 列表 + RDAP 响应；fail.com 返回 errorCode
+# curl：IANA 列表 + RDAP 响应；fail.com 返回 errorCode；flaky.com 首次失败、补查成功
 cat >"$t/bin/curl" <<EOF
 #!/usr/bin/env bash
 url=\${*: -1}; out=
@@ -32,6 +33,9 @@ while ((\$#)); do [[ \$1 == -o ]] && out=\$2; shift; done
 case \$url in
   *dns.json) echo '{"services":[[["com"],["http://bad/","https://r1/","https://r2/"]]]}' >"\$out" ;;
   https://r1/domain/b.com) echo '{"objectClassName":"domain","events":[{"eventAction":"expiration","eventDate":"${far}T00:00:00Z"}],"nameservers":[{"ldhName":"ns.b.com"}]}' ;;
+  https://r1/domain/flaky.com)
+    if [[ ! -f "$t/flaky.seen" ]]; then : >"$t/flaky.seen"; exit 22; fi
+    echo '{"objectClassName":"domain","events":[{"eventAction":"expiration","eventDate":"${far}T00:00:00Z"}],"nameservers":[{"ldhName":"ns.flaky.com"}]}' ;;
   https://r*/domain/fail.com) echo '{"errorCode":404}' ;;
   *) exit 22 ;;
 esac
@@ -60,6 +64,21 @@ check "到期清单" "fail.com    X
 bad_domain  X
 www.a.com   $future  10
 a.com       $future  10" "$(cat "$t/list.check.30d.txt")"
+
+RDAP_RETRIES=abc bash "$script" a.com >/dev/null 2>&1; check "RDAP_RETRIES 无效返回 2" 2 $?
+
+printf 'a.com\nb.com\nc.cn\nflaky.com\n' >"$t/retry_list"
+WHOIS_LOG="$t/whois.log" bash "$script" -f "$t/retry_list" >/dev/null
+check "批量瞬时失败补查返回 0" 0 $?
+check "TLD 分散与补查顺序" "a.com
+c.cn
+b.com
+flaky.com
+flaky.com" "$(cat "$t/whois.log")"
+check "补查成功报告" "a.com      $future  10
+c.cn       $future  10
+b.com      $far  100
+flaky.com  $far  100" "$(cat "$t/retry_list.check.txt")"
 
 if ((failures)); then echo "失败：$failures"; exit 1; fi
 echo PASS

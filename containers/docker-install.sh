@@ -90,11 +90,11 @@ done
 dockerd --validate --config-file "$tmp/daemon.json"
 if [[ ! -e /etc/docker/daemon.json && ! -L /etc/docker/daemon.json ]]; then
     install -D -m 0644 "$tmp/daemon.json" /etc/docker/daemon.json
-elif ! cmp -s -- "$tmp/daemon.json" /etc/docker/daemon.json; then
+else
     cat "$tmp/daemon.json" >/etc/docker/daemon.json
-    printf '镜像加速配置已更新；已运行的 Docker 需择机重启生效。\n'
 fi
-systemctl enable --now docker
+systemctl enable docker
+systemctl restart docker
 systemctl is-active --quiet docker
 docker version
-printf '安装完成；已有服务未主动重启，未修改用户组。软件包安装脚本可能重启服务。\n'
+printf '安装完成；未修改用户组。\n'
